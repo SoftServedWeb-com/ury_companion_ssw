@@ -20,6 +20,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Title",
+   "no_copy": 1,
    "reqd": 1,
    "unique": 1
   },
@@ -34,7 +35,8 @@
   {
    "fieldname": "attach_image",
    "fieldtype": "Attach Image",
-   "label": "Attach Image"
+   "label": "Attach Image",
+   "no_copy": 1
   },
   {
    "fieldname": "column_break_nsw5l",
@@ -49,7 +51,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-03 19:15:32.691231",
+ "modified": "2025-10-03 19:48:36.387049",
  "modified_by": "Administrator",
  "module": "Ury Companion Ssw",
  "name": "Sub Category",
