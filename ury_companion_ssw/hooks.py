@@ -1,9 +1,15 @@
+from . import __version__ as app_version
+
 app_name = "ury_companion_ssw"
 app_title = "Ury Companion Ssw"
 app_publisher = "Soft Served Web"
 app_description = "Adds more functions to ury"
 app_email = "aswin@softservedweb.com"
 app_license = "MIT"
+
+# Required Apps
+required_apps = ["erpnext"]
+
 
 # Includes in <head>
 # ------------------
