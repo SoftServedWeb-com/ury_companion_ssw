@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:title",
+ "autoname": "format:{title}-{main_category}",
  "creation": "2025-10-03 19:15:32.691231",
  "default_view": "List",
  "doctype": "DocType",
@@ -51,11 +51,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-03 19:48:36.387049",
+ "modified": "2025-10-04 14:26:56.744262",
  "modified_by": "Administrator",
  "module": "Ury Companion Ssw",
  "name": "Sub Category",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

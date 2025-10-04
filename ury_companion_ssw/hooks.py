@@ -114,9 +114,9 @@ required_apps = ["erpnext"]
 # ---------------
 # Override standard doctype classes
 
-override_doctype_class = {
-	"POS Invoice": "ury_companion_ssw.ury_companion_ssw.overrides.pos_invoice.POSInvoice"
-}
+# override_doctype_class = {
+# 	"POS Invoice": "ury_companion_ssw.ury_companion_ssw.overrides.doctype.pos_invoice.POSInvoice"
+# }
 
 # Document Events
 # ---------------

@@ -120,7 +120,7 @@ def generate_zatca_qrcode(total_amount, tax_amount, invoice_time):
 
 
 @frappe.whitelist()
-def network_printing(
+def network_printing_override(
     doctype,
     name,
     printer_setting,
