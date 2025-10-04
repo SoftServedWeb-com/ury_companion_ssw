@@ -21,8 +21,7 @@
    "in_list_view": 1,
    "label": "Title",
    "no_copy": 1,
-   "reqd": 1,
-   "unique": 1
+   "reqd": 1
   },
   {
    "fieldname": "main_category",
@@ -51,7 +50,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-04 14:26:56.744262",
+ "modified": "2025-10-04 14:58:55.446166",
  "modified_by": "Administrator",
  "module": "Ury Companion Ssw",
  "name": "Sub Category",
