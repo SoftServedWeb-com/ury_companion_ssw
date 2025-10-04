@@ -145,17 +145,6 @@ def network_printing_override(
         except Exception as e:
             print("error", e)
             return f"Failed to connect to the printer: {str(e)}"
-        options = {
-                'page-width': '80mm',     # ✅ Fixed 80 mm width
-                'page-height': '',        # ✅ Leave blank → auto height
-                'margin-top': '0mm',
-                'margin-right': '0mm',
-                'margin-bottom': '0mm',
-                'margin-left': '0mm',
-                'disable-smart-shrinking': '',  # ✅ Prevent automatic content shrinking
-                'encoding': 'UTF-8',
-                'print-media-type': '',   # ✅ Makes CSS print rules apply correctly
-            }
 
         try:
             # output = PdfWriter()
@@ -166,7 +155,6 @@ def network_printing_override(
                 doc=doc,
                 # no_letterhead=no_letterhead,
                 as_pdf=True,
-                pdf_options=options,
             )
             if not file_path:
                 file_path = os.path.join("/", "tmp", f"frappe-pdf-{frappe.generate_hash()}.pdf")
