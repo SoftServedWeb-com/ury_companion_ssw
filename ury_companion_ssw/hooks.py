@@ -122,13 +122,11 @@ required_apps = ["erpnext"]
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"POS Invoice": {
+		"validate": "ury_companion_ssw.ury_companion_ssw.hooks.ury_companion_pos_invoice.validate"
+	}
+}
 
 # Scheduled Tasks
 # ---------------
