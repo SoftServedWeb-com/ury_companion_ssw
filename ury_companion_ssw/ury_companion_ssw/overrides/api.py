@@ -145,10 +145,16 @@ def network_printing_override(
         except Exception as e:
             print("error", e)
             return f"Failed to connect to the printer: {str(e)}"
-        pdf_options = {
-            "page-width": "80mm",
-            "page-height": "auto", # Use a large height or 'auto' for receipts
-            "page-size": "Custom"   # Important: Set to Custom to use width/height
+        options = {
+                'page-width': '80mm',     # ✅ Fixed 80 mm width
+                'page-height': '',        # ✅ Leave blank → auto height
+                'margin-top': '0mm',
+                'margin-right': '0mm',
+                'margin-bottom': '0mm',
+                'margin-left': '0mm',
+                'disable-smart-shrinking': '',  # ✅ Prevent automatic content shrinking
+                'encoding': 'UTF-8',
+                'print-media-type': '',   # ✅ Makes CSS print rules apply correctly
             }
 
         try:
@@ -160,7 +166,7 @@ def network_printing_override(
                 doc=doc,
                 # no_letterhead=no_letterhead,
                 as_pdf=True,
-                pdf_options=pdf_options,
+                pdf_options=options,
             )
             if not file_path:
                 file_path = os.path.join("/", "tmp", f"frappe-pdf-{frappe.generate_hash()}.pdf")
