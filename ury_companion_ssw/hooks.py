@@ -114,9 +114,9 @@ required_apps = ["erpnext"]
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+	"POS Invoice": "ury_companion_ssw.ury_companion_ssw.overrides.pos_invoice.POSInvoice"
+}
 
 # Document Events
 # ---------------
@@ -159,9 +159,11 @@ required_apps = ["erpnext"]
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "ury_companion_ssw.event.get_events"
-# }
+override_whitelisted_methods = {
+	 "ury.ury_pos.api.getRestaurantMenu": "ury_companion_ssw.ury_companion_ssw.overrides.api.get_restaurant_menu_override",
+     "ury.ury_pos.api.getDefaultCustomer": "ury_companion_ssw.ury_companion_ssw.overrides.api.get_default_customer_override",
+	 "ury.ury.api.ury_print.network_printing": "ury_companion_ssw.ury_companion_ssw.overrides.api.network_printing_override"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

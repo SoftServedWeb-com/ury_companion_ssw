@@ -1,2 +1,4 @@
 pycups>=2.0.4
 pypdf>=6.1.1
+qrcode>=8.2
+qrzatca>=0.1.3
