@@ -127,51 +127,53 @@ def network_printing_override(
     print_format=None,
     doc=None,
     no_letterhead=0,
-    file_path=None,
+    file_path=None, # Hardcoded for testing with escpos 'File' backend
 ):
-    try:
-        print_settings = frappe.get_doc("Network Printer Settings", printer_setting)
+    """
+    Overrides Frappe's default print to use the python-escpos library
+    for direct printing to a device node (like /dev/usb/lp0).
+    Only prints the document name and cuts the paper.
+    """
+    print("network_printing_override", doctype, name, printer_setting, print_format, doc, no_letterhead, file_path)
+    from escpos.printer import File
 
+    printer_driver_path = "/dev/usb/lp0"
+    try:    
+        # 1. Get the document object if not passed
+        if not doc:
+            doc = frappe.get_doc(doctype, name)
+        
+        doc_name_to_print = doc.name
+        print("doc_name_to_print", doc_name_to_print)
+        # 2. Initialize the ESC/POS printer using the File backend
+        # This acts like the 'print_test.py' in the documentation.
         try:
-            import cups
-        except ImportError:
-            return "Failed to import cups"
+            # Initialize the printer connection to the device node
+            p = File(printer_driver_path)
+            
+            # Print the document name followed by a couple of newlines
+            p.text(f"--- Document Print Test ---\n")
+            p.text(f"Document Name: {doc_name_to_print}\n\n")
+            
+            # Send the paper cut command
+            p.cut()
+            
+            # Important: Close the connection to flush the buffer and release the file handle
+            p.close()
 
-        try:
-            cups.setServer(print_settings.server_ip)
-            cups.setPort(print_settings.port)
-            conn = cups.Connection()
-            print("conn", conn)
         except Exception as e:
-            print("error", e)
-            return f"Failed to connect to the printer: {str(e)}"
-
-        try:
-            # output = PdfWriter()
-            output = frappe.get_print(
-                doctype,
-                name,
-                print_format,
-                doc=doc,
-                # no_letterhead=no_letterhead,
-                as_pdf=True,
-            )
-            if not file_path:
-                file_path = os.path.join("/", "tmp", f"frappe-pdf-{frappe.generate_hash()}.pdf")
-
-            # 'output' should be the PDF *bytes* returned by frappe.get_print
-            with open(file_path, "wb") as f:
-                f.write(output)
-
-            # Then call the print function
-            conn.printFile(print_settings.printer_name, file_path, name, {})
-
-            restaurant_table, invoice_printed, name = frappe.db.get_value(
-                "POS Invoice", name, ["restaurant_table", "invoice_printed", "name"]
+            # Handles errors during ESC/POS initialization or printing
+            return f"Failed to connect or print using python-escpos on {printer_driver_path}: {str(e)}. Check permissions or device path."
+            
+        # 3. Update POS Invoice status (Kept the original logic for completeness)
+        if doctype == "POS Invoice":
+            restaurant_table, invoice_printed = frappe.db.get_value(
+                "POS Invoice", name, ["restaurant_table", "invoice_printed"]
             )
 
             if restaurant_table and invoice_printed == 0:
                 frappe.db.set_value("POS Invoice", name, "invoice_printed", 1)
+                # Assuming "URY Table" is a custom DocType
                 frappe.db.set_value(
                     "URY Table",
                     restaurant_table,
@@ -179,13 +181,10 @@ def network_printing_override(
                 )
             else:
                 frappe.db.set_value("POS Invoice", name, "invoice_printed", 1)
-
-            return "Success"
-        except Exception as e:
-            return f"Failed to print: {str(e)}"
+        
+        return "Success: Document name printed using python-escpos."
+            
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()  # Print the full traceback for debugging
-        return f"An error occurred: {str(e)}"
+        # Handles errors getting the document
+        return f"An error occurred while running the print function: {str(e)}"
 

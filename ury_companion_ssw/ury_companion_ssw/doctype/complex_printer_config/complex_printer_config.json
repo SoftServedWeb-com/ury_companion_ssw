@@ -1,0 +1,69 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-05 13:51:30.165457",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "tab_break_0v5uo",
+  "vid",
+  "pid",
+  "this_is_a_test"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vid",
+   "fieldtype": "Data",
+   "label": "Vendor ID"
+  },
+  {
+   "fieldname": "pid",
+   "fieldtype": "Data",
+   "label": "Product ID"
+  },
+  {
+   "fieldname": "tab_break_0v5uo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "this_is_a_test",
+   "fieldtype": "HTML",
+   "label": "This is a test",
+   "options": "<style>\n code, pre {\n            background-color: #f4f4f4;\n            padding: 5px;\n            border-radius: 4px;\n        }\n        pre {\n            overflow-x: auto;\n        }\n</style>\n<h5>Identify the USB Printer</h5>\n\n<ol>\n    <li>Plug in your printer.</li>\n    <li>List USB devices:</li>\n</ol>\n\n<pre><code>lsusb</code></pre>\n\n<p>Look for your printer. Example output:</p>\n\n<pre><code>Bus 003 Device 002: ID 0483:5720 STMicroelectronics Mass Storage Device</code></pre>\n\n<ul>\n    <li><code>0483</code> \u2192 Vendor ID (VID)</li>\n    <li><code>5720</code> \u2192 Product ID (PID)</li>\n</ul>"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-05 13:59:52.482652",
+ "modified_by": "Administrator",
+ "module": "Ury Companion Ssw",
+ "name": "Complex Printer Config",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
