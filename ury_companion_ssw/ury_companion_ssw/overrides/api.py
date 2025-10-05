@@ -218,6 +218,7 @@ def network_printing_override(
             as_pdf=False,
         )
 
+
         # 3. Define temporary file paths
         temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
         frappe.create_folder(temp_dir)
@@ -226,7 +227,7 @@ def network_printing_override(
         # NOTE: You may need to configure the wkhtmltoimage path here if not in $PATH
         # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage')
         config = imgkit.config() # Assumes wkhtmltoimage is in the system PATH
-
+        print("png_path", png_path)
         # 4. Convert HTML to PNG using imgkit (Requires wkhtmltoimage)
         try:
             # Options for thermal printing (small width) - Adjust as needed
@@ -241,12 +242,19 @@ def network_printing_override(
 
         # 5. Print the PNG using the 'lp' command (CUPS)
         try:
-            subprocess.run(
-                ["lp", "-d", printer_name, png_path],
-                capture_output=True,
-                text=True,
-                check=True
-            )
+             subprocess.run(
+                        [
+                            "lp",
+                            "-d", printer_name,
+                            "-o", "orientation-requested=3",  # portrait
+                            "-o", "fit-to-page",             # scale image to fill page
+                            png_path
+                        ],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                    )
+
         except subprocess.CalledProcessError as e:
             frappe.log_error(f"lp command failed: {e.stderr}", "Network Print Error")
             return f"Failed to send print job via lp: {e.stderr}"
