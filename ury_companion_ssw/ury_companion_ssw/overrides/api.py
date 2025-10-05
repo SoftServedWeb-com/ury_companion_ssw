@@ -219,6 +219,7 @@ def network_printing_override(
             print("final_html", final_html)
         except Exception as e:
             frappe.log_error(f"Error generating HTML and style: {str(e)}", "Network Print Error")
+            print("e", e)
             return f"Failed to generate HTML and style for printing: {str(e)}"
 
         temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
@@ -230,7 +231,7 @@ def network_printing_override(
             options = {
             'width': '576',  # ~80mm
             'quiet': '',
-            'enable-local-file-access': '',  # ✅ CRUCIAL FIX
+            # 'enable-local-file-access': '',  # ✅ CRUCIAL FIX
             'load-error-handling': 'ignore',  # optional: ignore missing resources
             'load-media-error-handling': 'ignore',
             'encoding': 'UTF-8',
