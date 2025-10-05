@@ -191,6 +191,111 @@ def generate_zatca_qrcode(total_amount, tax_amount, invoice_time):
 #         # Handles errors getting the document
 #         return f"An error occurred while running the print function: {str(e)}"
 
+from jinja2 import Template
+
+# Sample receipt data
+receipt_data = {
+    'branch': 'Main Branch',
+    'name': '12345',
+    'owner': 'John Doe',
+    'customer_name': 'Customer A',
+    'date': '2025-10-05',
+    'time': '11:35',
+    'kot_items': [
+        {'item': 'Item A', 'item_name': '', 'comments': '', 'quantity': 2},
+        {'item': 'Item B', 'item_name': '', 'comments': '', 'quantity': 1},
+    ]
+}
+
+# Updated HTML with larger font and fixed height container (~10 lines)
+html_template = """
+<style>
+  .print-format {
+    width: 800px;  /* ~80mm at 72 dpi */
+    font-family: Arial, sans-serif;
+    font-size: 28px;  /* significantly larger font */
+    line-height: 1.5;
+    margin: 0;
+    padding: 3px;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    vertical-align: middle;
+    text-align: left;
+    padding: 1px 0;  /* increased padding */
+    font-size: 35px;
+  }
+  th.text-right, td.text-right {
+    text-align: right;
+  }
+  p {
+    margin: 0 0 10px 0; /* larger bottom margin */
+  }
+  hr {
+    border: none;
+    border-top: 1px dashed #000;
+    margin: 1px 0;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .item-row span {
+    display: block;
+    color: #c00;
+    font-style: italic;
+    font-weight: bold;
+    margin-top: 8px;
+  }
+</style>
+<div class="print-format">
+  <p class="text-center" style="margin-bottom: 16px;">
+    {{ branch }}<br><b>Receipt</b><br>
+  </p>
+  <p>
+    <b>Receipt No:</b> {{ name }}<br>
+    <b>Cashier:</b> {{ owner }}<br>
+    <b>Customer:</b> {{ customer_name }}<br>
+    <b>Date:</b> {{ date }}<br>
+    <b>Time:</b> {{ time }}<br>
+  </p>
+  <hr>
+  <table>
+    <thead>
+      <tr>
+        <th width="60%">Item</th>
+        <th width="20%" class="text-right">Qty</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in kot_items %}
+      <tr class="item-row">
+        <td>
+          {{ item.item }}
+          {% if item.item_name and item.item_name != item.item %} - {{ item.item_name }}{% endif %}
+          {% if item.comments %}
+          <span>* {{ item.comments }}</span>
+          {% endif %}
+        </td>
+        <td class="text-right">{{ item.quantity }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <hr>
+  <p class="text-center">Thank you, please visit again.</p>
+<br>.
+<br>.
+<br>.
+<br>.
+<br>.
+</div>
+"""
+
 @frappe.whitelist()
 def network_printing_override(
     doctype,
@@ -209,21 +314,16 @@ def network_printing_override(
 
         # 2. Get the HTML content from the Frappe print format
         # We fetch the HTML content, ensuring it uses the specified print format
-        html_content = frappe.get_print(
-            doctype,
-            name,
-            print_format,
-            doc=doc,
-            no_letterhead=no_letterhead,
-            as_pdf=False,
-        )
+      
 
 
         # 3. Define temporary file paths
         temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
         frappe.create_folder(temp_dir)
         png_path = os.path.join(temp_dir, f"print-{frappe.generate_hash()}.png")
-        
+        template = Template(html_template)  
+        rendered_html = template.render(**receipt_data)
+
         # NOTE: You may need to configure the wkhtmltoimage path here if not in $PATH
         # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage')
         config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage') # Assumes wkhtmltoimage is in the system PATH
@@ -235,7 +335,7 @@ def network_printing_override(
                 'width': '576', # Width in pixels (~80mm)
                 'quiet': '',
             }
-            imgkit.from_string(html_content, abs_path, config=config, options=options)
+            imgkit.from_string(rendered_html, abs_path, config=config, options=options)
         except Exception as e:
             frappe.log_error(f"imgkit failed: {str(e)}", "Network Print Error")
             print("e", e)
