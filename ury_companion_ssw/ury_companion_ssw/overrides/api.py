@@ -226,7 +226,7 @@ def network_printing_override(
         
         # NOTE: You may need to configure the wkhtmltoimage path here if not in $PATH
         # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage')
-        config = imgkit.config() # Assumes wkhtmltoimage is in the system PATH
+        config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage') # Assumes wkhtmltoimage is in the system PATH
         abs_path = os.path.abspath(png_path)
         # 4. Convert HTML to PNG using imgkit (Requires wkhtmltoimage)
         try:
@@ -238,6 +238,7 @@ def network_printing_override(
             imgkit.from_string(html_content, abs_path, config=config, options=options)
         except Exception as e:
             frappe.log_error(f"imgkit failed: {str(e)}", "Network Print Error")
+            print("e", e)
             return f"Failed to convert HTML to PNG: {str(e)}. Is 'wkhtmltoimage' installed?"
 
         # 5. Print the PNG using the 'lp' command (CUPS)
@@ -254,9 +255,10 @@ def network_printing_override(
                         text=True,
                         check=True
                     )
-
+            print("lp command succeeded")
         except subprocess.CalledProcessError as e:
             frappe.log_error(f"lp command failed: {e.stderr}", "Network Print Error")
+            print("e.stderr", e.stderr)
             return f"Failed to send print job via lp: {e.stderr}"
 
         # 6. Cleanup (Optional, but good practice)
