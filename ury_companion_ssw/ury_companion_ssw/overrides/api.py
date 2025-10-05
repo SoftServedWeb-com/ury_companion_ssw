@@ -216,6 +216,7 @@ def network_printing_override(
         try:
             result = get_html_and_style(doc=data, print_format=print_format, no_letterhead=no_letterhead)
             final_html = f"<html><head><style>{result['style']}</style></head><body>{result['html']}</body></html>"
+            print("final_html", final_html)
         except Exception as e:
             frappe.log_error(f"Error generating HTML and style: {str(e)}", "Network Print Error")
             return f"Failed to generate HTML and style for printing: {str(e)}"
@@ -262,11 +263,11 @@ def network_printing_override(
             print("e.stderr", e.stderr)
             return f"Failed to send print job via lp: {e.stderr}"
 
-        # # 6. Cleanup (Optional, but good practice)
-        # try:
-        #     os.remove(png_path)
-        # except Exception:
-        #     pass # Ignore cleanup errors
+        # 6. Cleanup (Optional, but good practice)
+        try:
+            os.remove(png_path)
+        except Exception:
+            pass # Ignore cleanup errors
 
         # 7. Update POS Invoice status (Kept original logic)
         if doctype == "POS Invoice":
