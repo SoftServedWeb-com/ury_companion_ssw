@@ -215,7 +215,7 @@ def network_printing_override(
             print_format,
             doc=doc,
             no_letterhead=no_letterhead,
-            as_html=True,
+            as_pdf=False,
         )
 
         # 3. Define temporary file paths
