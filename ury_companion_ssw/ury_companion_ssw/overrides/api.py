@@ -5,6 +5,7 @@ from ury.ury_pos.api import getBranch
 from datetime import datetime
 import subprocess
 import imgkit # Requires wkhtmltoimage system package
+from frappe.www.printview import get_html_and_style
 
 
 @frappe.whitelist()
@@ -191,110 +192,8 @@ def generate_zatca_qrcode(total_amount, tax_amount, invoice_time):
 #         # Handles errors getting the document
 #         return f"An error occurred while running the print function: {str(e)}"
 
-from jinja2 import Template
 
 # Sample receipt data
-receipt_data = {
-    'branch': 'Main Branch',
-    'name': '12345',
-    'owner': 'John Doe',
-    'customer_name': 'Customer A',
-    'date': '2025-10-05',
-    'time': '11:35',
-    'kot_items': [
-        {'item': 'Item A', 'item_name': '', 'comments': '', 'quantity': 2},
-        {'item': 'Item B', 'item_name': '', 'comments': '', 'quantity': 1},
-    ]
-}
-
-# Updated HTML with larger font and fixed height container (~10 lines)
-html_template = """
-<style>
-  .print-format {
-    width: 800px;  /* ~80mm at 72 dpi */
-    font-family: Arial, sans-serif;
-    font-size: 28px;  /* significantly larger font */
-    line-height: 1.5;
-    margin: 0;
-    padding: 3px;
-    overflow: visible;
-    box-sizing: border-box;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  th, td {
-    vertical-align: middle;
-    text-align: left;
-    padding: 1px 0;  /* increased padding */
-    font-size: 35px;
-  }
-  th.text-right, td.text-right {
-    text-align: right;
-  }
-  p {
-    margin: 0 0 10px 0; /* larger bottom margin */
-  }
-  hr {
-    border: none;
-    border-top: 1px dashed #000;
-    margin: 1px 0;
-  }
-  .text-center {
-    text-align: center;
-  }
-  .item-row span {
-    display: block;
-    color: #c00;
-    font-style: italic;
-    font-weight: bold;
-    margin-top: 8px;
-  }
-</style>
-<div class="print-format">
-  <p class="text-center" style="margin-bottom: 16px;">
-    {{ branch }}<br><b>Receipt</b><br>
-  </p>
-  <p>
-    <b>Receipt No:</b> {{ name }}<br>
-    <b>Cashier:</b> {{ owner }}<br>
-    <b>Customer:</b> {{ customer_name }}<br>
-    <b>Date:</b> {{ date }}<br>
-    <b>Time:</b> {{ time }}<br>
-  </p>
-  <hr>
-  <table>
-    <thead>
-      <tr>
-        <th width="60%">Item</th>
-        <th width="20%" class="text-right">Qty</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in kot_items %}
-      <tr class="item-row">
-        <td>
-          {{ item.item }}
-          {% if item.item_name and item.item_name != item.item %} - {{ item.item_name }}{% endif %}
-          {% if item.comments %}
-          <span>* {{ item.comments }}</span>
-          {% endif %}
-        </td>
-        <td class="text-right">{{ item.quantity }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <hr>
-  <p class="text-center">Thank you, please visit again.</p>
-<br>.
-<br>.
-<br>.
-<br>.
-<br>.
-</div>
-"""
 
 @frappe.whitelist()
 def network_printing_override(
@@ -307,35 +206,32 @@ def network_printing_override(
     file_path=None, # Not strictly needed, but kept for signature
 ):
     try:
-        # 1. Get the Network Printer Settings DocType
         print_settings = frappe.get_doc("Network Printer Settings", printer_setting)
-        # printer_name = print_settings.printer_name # Assumes printer_name is the CUPS name
-        printer_name = "ProPOS_PP9000EU"
+        # printer_name = "ProPOS_PP9000EU"
+        print("print_settings", print_settings.printer_name)
+        if not doc:
+            data = frappe.get_doc(doctype, name)
+        else:
+            data = doc
 
-        # 2. Get the HTML content from the Frappe print format
-        # We fetch the HTML content, ensuring it uses the specified print format
-      
+        result = get_html_and_style(doc=data, print_format=print_format,no_letterhead=no_letterhead)
+        final_html = f"<html><head><style>{result['style']}</style></head><body>{result['html']}</body></html>"
 
-
-        # 3. Define temporary file paths
+        print("final_html", final_html)
         temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
         frappe.create_folder(temp_dir)
         png_path = os.path.join(temp_dir, f"print-{frappe.generate_hash()}.png")
-        template = Template(html_template)  
-        rendered_html = template.render(**receipt_data)
-
-        # NOTE: You may need to configure the wkhtmltoimage path here if not in $PATH
-        # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage')
+        print("png_path", png_path)
         config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage') # Assumes wkhtmltoimage is in the system PATH
         abs_path = os.path.abspath(png_path)
-        # 4. Convert HTML to PNG using imgkit (Requires wkhtmltoimage)
         try:
-            # Options for thermal printing (small width) - Adjust as needed
             options = {
                 'width': '576', # Width in pixels (~80mm)
                 'quiet': '',
             }
-            imgkit.from_string(rendered_html, abs_path, config=config, options=options)
+            print("options", options)
+            imgkit.from_string(final_html, abs_path, config=config, options=options)
+            print("imgkit succeeded")
         except Exception as e:
             frappe.log_error(f"imgkit failed: {str(e)}", "Network Print Error")
             print("e", e)
@@ -346,7 +242,7 @@ def network_printing_override(
             subprocess.run(
                         [
                             "lp",
-                            "-d", printer_name,
+                            "-d", print_settings.printer_name,
                             "-o", "orientation-requested=3",  # portrait
                             "-o", "fit-to-page",             # scale image to fill page
                             abs_path
