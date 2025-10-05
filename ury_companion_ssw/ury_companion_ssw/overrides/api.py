@@ -251,7 +251,7 @@ def network_printing_override(
                             "lp",
                             "-d", "ProPOS_PP9000EU",
                             "-o", "orientation-requested=3",  # portrait
-                            "-o", "fit-to-page",             # scale image to fill page
+                            # "-o", "fit-to-page",             # scale image to fill page
                             abs_path
                         ],
                         capture_output=True,
