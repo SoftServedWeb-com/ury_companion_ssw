@@ -242,7 +242,7 @@ def network_printing_override(
             return f"Failed to convert HTML to PNG: {str(e)}"
 
         # 5. Print the PNG using the 'lp' command (CUPS)
-        print(print_settings.custom_custom_printer_name or print_settings.printer_name or "ProPOS_PP9000EU")
+        print("printer_name : ", print_settings.custom_custom_printer_name or print_settings.printer_name)
         try:
             subprocess.run(
                         [
@@ -262,11 +262,11 @@ def network_printing_override(
             print("e.stderr", e.stderr)
             return f"Failed to send print job via lp: {e.stderr}"
 
-        # 6. Cleanup (Optional, but good practice)
-        try:
-            os.remove(png_path)
-        except Exception:
-            pass # Ignore cleanup errors
+        # # 6. Cleanup (Optional, but good practice)
+        # try:
+        #     os.remove(png_path)
+        # except Exception:
+        #     pass # Ignore cleanup errors
 
         # 7. Update POS Invoice status (Kept original logic)
         if doctype == "POS Invoice":
