@@ -228,8 +228,12 @@ def network_printing_override(
         abs_path = os.path.abspath(png_path)
         try:
             options = {
-                'width': '576', # Width in pixels (~80mm)
-                'quiet': '',
+            'width': '576',  # ~80mm
+            'quiet': '',
+            'enable-local-file-access': '',  # ✅ CRUCIAL FIX
+            'load-error-handling': 'ignore',  # optional: ignore missing resources
+            'load-media-error-handling': 'ignore',
+            'encoding': 'UTF-8',
             }
             imgkit.from_string(final_html, abs_path, config=config, options=options)
             print("imgkit succeeded")
