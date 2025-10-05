@@ -227,7 +227,7 @@ def network_printing_override(
         # NOTE: You may need to configure the wkhtmltoimage path here if not in $PATH
         # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage')
         config = imgkit.config() # Assumes wkhtmltoimage is in the system PATH
-        print("png_path", png_path)
+        abs_path = os.path.abspath(png_path)
         # 4. Convert HTML to PNG using imgkit (Requires wkhtmltoimage)
         try:
             # Options for thermal printing (small width) - Adjust as needed
@@ -235,7 +235,7 @@ def network_printing_override(
                 'width': '576', # Width in pixels (~80mm)
                 'quiet': '',
             }
-            imgkit.from_string(html_content, png_path, config=config, options=options)
+            imgkit.from_string(html_content, abs_path, config=config, options=options)
         except Exception as e:
             frappe.log_error(f"imgkit failed: {str(e)}", "Network Print Error")
             return f"Failed to convert HTML to PNG: {str(e)}. Is 'wkhtmltoimage' installed?"
@@ -248,7 +248,7 @@ def network_printing_override(
                             "-d", printer_name,
                             "-o", "orientation-requested=3",  # portrait
                             "-o", "fit-to-page",             # scale image to fill page
-                            png_path
+                            abs_path
                         ],
                         capture_output=True,
                         text=True,
