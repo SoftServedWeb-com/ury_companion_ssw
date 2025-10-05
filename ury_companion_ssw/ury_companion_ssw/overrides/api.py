@@ -249,9 +249,9 @@ def network_printing_override(
             subprocess.run(
                         [
                             "lp",
-                            "-d", "ProPOS_PP9000EU",
+                            "-d", print_settings.custom_custom_printer_name or print_settings.printer_name,
                             "-o", "orientation-requested=3",  # portrait
-                            # "-o", "fit-to-page",             # scale image to fill page
+                            "-o", "fit-to-page",             # scale image to fill page
                             abs_path
                         ],
                         capture_output=True,
