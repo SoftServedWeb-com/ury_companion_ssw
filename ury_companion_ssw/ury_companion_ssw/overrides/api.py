@@ -220,7 +220,6 @@ def network_printing_override(
             frappe.log_error(f"Error generating HTML and style: {str(e)}", "Network Print Error")
             return f"Failed to generate HTML and style for printing: {str(e)}"
 
-        print("final_html", final_html)
         temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
         frappe.create_folder(temp_dir)
         png_path = os.path.join(temp_dir, f"print-{frappe.generate_hash()}.png")
@@ -243,11 +242,12 @@ def network_printing_override(
             return f"Failed to convert HTML to PNG: {str(e)}"
 
         # 5. Print the PNG using the 'lp' command (CUPS)
+        print(print_settings.custom_custom_printer_name or print_settings.printer_name or "ProPOS_PP9000EU")
         try:
             subprocess.run(
                         [
                             "lp",
-                            "-d", print_settings.custom_custom_printer_name or print_settings.printer_name or "ProPOS_PP9000EU",
+                            "-d", "ProPOS_PP9000EU",
                             "-o", "orientation-requested=3",  # portrait
                             "-o", "fit-to-page",             # scale image to fill page
                             abs_path
