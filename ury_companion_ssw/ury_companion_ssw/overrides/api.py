@@ -231,7 +231,7 @@ def network_printing_override(
             options = {
             'width': '576',  # ~80mm
             'quiet': '',
-            # 'enable-local-file-access': '',  # ✅ CRUCIAL FIX
+            'enable-local-file-access': '',  # ✅ CRUCIAL FIX
             'load-error-handling': 'ignore',  # optional: ignore missing resources
             'load-media-error-handling': 'ignore',
             'encoding': 'UTF-8',
@@ -265,10 +265,10 @@ def network_printing_override(
             return f"Failed to send print job via lp: {e.stderr}"
 
         # 6. Cleanup (Optional, but good practice)
-        try:
-            os.remove(png_path)
-        except Exception:
-            pass # Ignore cleanup errors
+        # try:
+        #     os.remove(png_path)
+        # except Exception:
+        #     pass # Ignore cleanup errors
 
         # 7. Update POS Invoice status (Kept original logic)
         if doctype == "POS Invoice":
