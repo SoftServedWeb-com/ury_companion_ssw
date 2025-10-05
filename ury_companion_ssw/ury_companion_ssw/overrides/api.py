@@ -243,7 +243,7 @@ def network_printing_override(
 
         # 5. Print the PNG using the 'lp' command (CUPS)
         try:
-             subprocess.run(
+            subprocess.run(
                         [
                             "lp",
                             "-d", printer_name,
