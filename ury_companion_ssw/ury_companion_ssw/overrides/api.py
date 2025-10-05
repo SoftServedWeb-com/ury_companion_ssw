@@ -208,7 +208,7 @@ def network_printing_override(
     try:
         print_settings = frappe.get_doc("Network Printer Settings", printer_setting)
         # printer_name = "ProPOS_PP9000EU"
-        print("print_settings", print_settings.printer_name)
+        print("print_settings", print_settings.custom_custom_printer_name or print_settings.printer_name)
         if not doc:
             data = frappe.get_doc(doctype, name)
         else:
@@ -242,7 +242,7 @@ def network_printing_override(
             subprocess.run(
                         [
                             "lp",
-                            "-d", print_settings.printer_name,
+                            "-d", print_settings.custom_custom_printer_name or print_settings.printer_name,
                             "-o", "orientation-requested=3",  # portrait
                             "-o", "fit-to-page",             # scale image to fill page
                             abs_path
