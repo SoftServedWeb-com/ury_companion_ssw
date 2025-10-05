@@ -3,6 +3,9 @@ import frappe
 from frappe import _
 from ury.ury_pos.api import getBranch
 from datetime import datetime
+import subprocess
+import imgkit # Requires wkhtmltoimage system package
+
 
 @frappe.whitelist()
 def get_restaurant_menu_override(pos_profile, room=None, order_type=None):
@@ -119,6 +122,75 @@ def generate_zatca_qrcode(total_amount, tax_amount, invoice_time):
         return qr_image
 
 
+# @frappe.whitelist()
+# def network_printing_override(
+#     doctype,
+#     name,
+#     printer_setting,
+#     print_format=None,
+#     doc=None,
+#     no_letterhead=0,
+#     file_path=None, # Hardcoded for testing with escpos 'File' backend
+# ):
+#     """
+#     Overrides Frappe's default print to use the python-escpos library
+#     for direct printing to a device node (like /dev/usb/lp0).
+#     Only prints the document name and cuts the paper.
+#     """
+#     print("network_printing_override", doctype, name, printer_setting, print_format, doc, no_letterhead, file_path)
+#     from escpos.printer import File
+
+#     printer_driver_path = "/dev/usb/lp0"
+#     try:    
+#         # 1. Get the document object if not passed
+#         if not doc:
+#             doc = frappe.get_doc(doctype, name)
+        
+#         doc_name_to_print = doc.name
+#         print("doc_name_to_print", doc_name_to_print)
+#         # 2. Initialize the ESC/POS printer using the File backend
+#         # This acts like the 'print_test.py' in the documentation.
+#         try:
+#             # Initialize the printer connection to the device node
+#             p = File(printer_driver_path)
+            
+#             # Print the document name followed by a couple of newlines
+#             p.text(f"--- Document Print Test ---\n")
+#             p.text(f"Document Name: {doc_name_to_print}\n\n")
+            
+#             # Send the paper cut command
+#             p.cut()
+            
+#             # Important: Close the connection to flush the buffer and release the file handle
+#             p.close()
+
+#         except Exception as e:
+#             # Handles errors during ESC/POS initialization or printing
+#             return f"Failed to connect or print using python-escpos on {printer_driver_path}: {str(e)}. Check permissions or device path."
+            
+#         # 3. Update POS Invoice status (Kept the original logic for completeness)
+#         if doctype == "POS Invoice":
+#             restaurant_table, invoice_printed = frappe.db.get_value(
+#                 "POS Invoice", name, ["restaurant_table", "invoice_printed"]
+#             )
+
+#             if restaurant_table and invoice_printed == 0:
+#                 frappe.db.set_value("POS Invoice", name, "invoice_printed", 1)
+#                 # Assuming "URY Table" is a custom DocType
+#                 frappe.db.set_value(
+#                     "URY Table",
+#                     restaurant_table,
+#                     {"occupied": 0, "latest_invoice_time": None},
+#                 )
+#             else:
+#                 frappe.db.set_value("POS Invoice", name, "invoice_printed", 1)
+        
+#         return "Success: Document name printed using python-escpos."
+            
+#     except Exception as e:
+#         # Handles errors getting the document
+#         return f"An error occurred while running the print function: {str(e)}"
+
 @frappe.whitelist()
 def network_printing_override(
     doctype,
@@ -127,45 +199,65 @@ def network_printing_override(
     print_format=None,
     doc=None,
     no_letterhead=0,
-    file_path=None, # Hardcoded for testing with escpos 'File' backend
+    file_path=None, # Not strictly needed, but kept for signature
 ):
-    """
-    Overrides Frappe's default print to use the python-escpos library
-    for direct printing to a device node (like /dev/usb/lp0).
-    Only prints the document name and cuts the paper.
-    """
-    print("network_printing_override", doctype, name, printer_setting, print_format, doc, no_letterhead, file_path)
-    from escpos.printer import File
+    try:
+        # 1. Get the Network Printer Settings DocType
+        print_settings = frappe.get_doc("Network Printer Settings", printer_setting)
+        # printer_name = print_settings.printer_name # Assumes printer_name is the CUPS name
+        printer_name = "ProPOS_PP9000EU"
 
-    printer_driver_path = "/dev/usb/lp0"
-    try:    
-        # 1. Get the document object if not passed
-        if not doc:
-            doc = frappe.get_doc(doctype, name)
+        # 2. Get the HTML content from the Frappe print format
+        # We fetch the HTML content, ensuring it uses the specified print format
+        html_content = frappe.get_print(
+            doctype,
+            name,
+            print_format,
+            doc=doc,
+            no_letterhead=no_letterhead,
+            as_html=True,
+        )
+
+        # 3. Define temporary file paths
+        temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
+        frappe.create_folder(temp_dir)
+        png_path = os.path.join(temp_dir, f"print-{frappe.generate_hash()}.png")
         
-        doc_name_to_print = doc.name
-        print("doc_name_to_print", doc_name_to_print)
-        # 2. Initialize the ESC/POS printer using the File backend
-        # This acts like the 'print_test.py' in the documentation.
-        try:
-            # Initialize the printer connection to the device node
-            p = File(printer_driver_path)
-            
-            # Print the document name followed by a couple of newlines
-            p.text(f"--- Document Print Test ---\n")
-            p.text(f"Document Name: {doc_name_to_print}\n\n")
-            
-            # Send the paper cut command
-            p.cut()
-            
-            # Important: Close the connection to flush the buffer and release the file handle
-            p.close()
+        # NOTE: You may need to configure the wkhtmltoimage path here if not in $PATH
+        # config = imgkit.config(wkhtmltoimage='/usr/bin/wkhtmltoimage')
+        config = imgkit.config() # Assumes wkhtmltoimage is in the system PATH
 
+        # 4. Convert HTML to PNG using imgkit (Requires wkhtmltoimage)
+        try:
+            # Options for thermal printing (small width) - Adjust as needed
+            options = {
+                'width': '576', # Width in pixels (~80mm)
+                'quiet': '',
+            }
+            imgkit.from_string(html_content, png_path, config=config, options=options)
         except Exception as e:
-            # Handles errors during ESC/POS initialization or printing
-            return f"Failed to connect or print using python-escpos on {printer_driver_path}: {str(e)}. Check permissions or device path."
-            
-        # 3. Update POS Invoice status (Kept the original logic for completeness)
+            frappe.log_error(f"imgkit failed: {str(e)}", "Network Print Error")
+            return f"Failed to convert HTML to PNG: {str(e)}. Is 'wkhtmltoimage' installed?"
+
+        # 5. Print the PNG using the 'lp' command (CUPS)
+        try:
+            subprocess.run(
+                ["lp", "-d", printer_name, png_path],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+        except subprocess.CalledProcessError as e:
+            frappe.log_error(f"lp command failed: {e.stderr}", "Network Print Error")
+            return f"Failed to send print job via lp: {e.stderr}"
+
+        # 6. Cleanup (Optional, but good practice)
+        try:
+            os.remove(png_path)
+        except Exception:
+            pass # Ignore cleanup errors
+
+        # 7. Update POS Invoice status (Kept original logic)
         if doctype == "POS Invoice":
             restaurant_table, invoice_printed = frappe.db.get_value(
                 "POS Invoice", name, ["restaurant_table", "invoice_printed"]
@@ -173,7 +265,6 @@ def network_printing_override(
 
             if restaurant_table and invoice_printed == 0:
                 frappe.db.set_value("POS Invoice", name, "invoice_printed", 1)
-                # Assuming "URY Table" is a custom DocType
                 frappe.db.set_value(
                     "URY Table",
                     restaurant_table,
@@ -182,9 +273,8 @@ def network_printing_override(
             else:
                 frappe.db.set_value("POS Invoice", name, "invoice_printed", 1)
         
-        return "Success: Document name printed using python-escpos."
-            
-    except Exception as e:
-        # Handles errors getting the document
-        return f"An error occurred while running the print function: {str(e)}"
+        return "Success: Document printed via CUPS (PNG method)."
 
+    except Exception as e:
+        frappe.log_error(str(e), "General Network Print Error")
+        return f"An error occurred: {str(e)}"
