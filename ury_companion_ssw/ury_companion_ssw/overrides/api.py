@@ -212,24 +212,24 @@ def network_printing_override(
         else:
             data = doc
 
-        try:            
-            # generate the raw data ( applying the jinja template )
-            result = get_rendered_raw_commands(doc=data, print_format=print_format)
-            print("result", result["raw_commands"])
+        # try:            
+        #     # generate the raw data ( applying the jinja template )
+        #     result = get_rendered_raw_commands(doc=data, print_format=print_format)
+        #     print("result", result["raw_commands"])
 
-        except Exception as e:
+        # except Exception as e:
             
-            frappe.log_error(f"Error generating raw commands: {str(e)}", "Network Print Error")
-            print("e", e)
-            return f"Failed to generate raw commands for printing: {str(e)}"
+        #     frappe.log_error(f"Error generating raw commands: {str(e)}", "Network Print Error")
+        #     print("e", e)
+        #     return f"Failed to generate raw commands for printing: {str(e)}"
 
-        # save the raw data to a .bin file
-        temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
-        frappe.create_folder(temp_dir)
-        bin_path = os.path.join(temp_dir, f"print-{data.name}.bin")
-        abs_path = os.path.abspath(bin_path)
-        with open(abs_path, "w") as f:
-            f.write(result["raw_commands"])
+        # # save the raw data to a .bin file
+        # temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
+        # frappe.create_folder(temp_dir)
+        # bin_path = os.path.join(temp_dir, f"print-{data.name}.bin")
+        # abs_path = os.path.abspath(bin_path)
+        # with open(abs_path, "w") as f:
+        #     f.write(result["raw_commands"])
         
         try:
             # subprocess.run(
