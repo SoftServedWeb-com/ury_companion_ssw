@@ -280,7 +280,7 @@ def network_printing_override(
 from escpos.printer import Network # Import your printer class
 from escpos.constants import QR_ECLEVEL_L # Needed for the full receipt function
 
-def print_receipt_with_columns( doc):
+def print_receipt_with_columns(doc):
     """
     Revised print function using p.software_columns() for table sections.
     """
@@ -346,13 +346,13 @@ def print_receipt_with_columns( doc):
 
     # Reusing widths and aligns from the header for the data rows
     
-    for item in doc['items']:
+    for item in doc.items:
         item_list = [
             str(int(item['qty'])), # QTY (Right)
             item['item_name'][:20].strip(), # ITEM (Left)
-            item['get_formatted']("rate"), # RATE (Right)
-            get_tax_label(doc['total_taxes_and_charges']), # TAX (Right)
-            item['get_formatted']("amount") # TOTAL (Right)
+            item.get_formatted("rate"), # RATE (Right)
+            get_tax_label(doc.total_taxes_and_charges), # TAX (Right)
+            item.get_formatted("amount") # TOTAL (Right)
         ]
         
         p.software_columns(
@@ -373,14 +373,14 @@ def print_receipt_with_columns( doc):
 
     # SUBTOTAL
     p.software_columns(
-        text_list=["SUBTOTAL:", doc['get_formatted']("base_total")],
+        text_list=["SUBTOTAL:", doc.get_formatted("base_total")],
         widths=total_widths,
         align=total_aligns
     )
     
     # TAXES
     p.software_columns(
-        text_list=["TAXES:", doc['get_formatted']("total_taxes_and_charges")],
+        text_list=["TAXES:", doc.get_formatted("total_taxes_and_charges")],
         widths=total_widths,
         align=total_aligns
     )
@@ -393,7 +393,7 @@ def print_receipt_with_columns( doc):
     final_widths = [15, 6] # Approximate new column widths
     
     p.software_columns(
-        text_list=["NET TOTAL:", doc['get_formatted']("grand_total")],
+        text_list=["NET TOTAL:", doc.get_formatted("grand_total")],
         widths=final_widths,
         align=total_aligns # Alignment remains the same
     )
