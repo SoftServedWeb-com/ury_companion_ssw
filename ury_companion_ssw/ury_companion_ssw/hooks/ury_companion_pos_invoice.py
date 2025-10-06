@@ -1,38 +1,34 @@
 import frappe
 from frappe.utils.file_manager import save_file
-from ury_companion_ssw.ury_companion_ssw.overrides.api import generate_zatca_qrcode
-from datetime import datetime
+# Assuming the extracted function is correctly named and imported:
+from ury_companion_ssw.ury_companion_ssw.overrides.api import generate_zatca_qr_data_and_image
 import base64
-from io import BytesIO
+# from datetime import datetime # No longer needed for timestamp logic here
+# from io import BytesIO # No longer needed for saving image
 
 def validate(doc, method):
-    print("validate", doc, method)
+    # print("validate", doc, method) # Keep or remove for debugging
+
+    # --- 1. ZATCA Check ---
     if not frappe.get_doc("URY Companion Settings").zatca_enabled:
-            return
+        return
 
-    # Assuming 'doc' is the POS Invoice document object in your hook
-    arrived_time = datetime.strptime(f"{doc.posting_date} {doc.posting_time}", "%Y-%m-%d %H:%M:%S.%f")
-    zatca_timestamp_str = arrived_time.strftime("%Y-%m-%dT%H:%M:%S")
-
-    qr_image = generate_zatca_qrcode(doc.grand_total, doc.total_taxes_and_charges, zatca_timestamp_str)
+   
+    zatca_code, qr_image_bytes = generate_zatca_qr_data_and_image(doc)
+   
+    img_str_b64 = base64.b64encode(qr_image_bytes).decode("utf-8")
     
-    # 1. Save the QR image to a BytesIO buffer as PNG
-    buffered = BytesIO()
-    qr_image.save(buffered, format="PNG")
-    
-    # 2. Base64 encode the binary PNG data
-    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    
-    # 3. Save the file. 'decode=True' tells Frappe to decode the base64 string
-    #    back into binary data (the PNG file) before saving.
     file_doc = save_file(
         f"Zatca QR {doc.name}.png",
-        img_str, 
+        img_str_b64, 
         doc.doctype, 
         doc.name, 
-        decode=True,
+        decode=True, # Critical: decodes the Base64 string back to binary PNG
         is_private=0, 
     )
     
+    # --- 5. Update Document Fields ---
     doc.custom_zatca_qr_preview = file_doc.name
     doc.custom_zatca_qr = file_doc.file_url
+    doc.custom_zatca_code = zatca_code
+    
