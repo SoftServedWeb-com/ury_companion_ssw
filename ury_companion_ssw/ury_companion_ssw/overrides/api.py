@@ -232,16 +232,17 @@ def network_printing_override(
             f.write(result["raw_commands"])
         
         try:
-            subprocess.run(
-                        [
-                            "lp",
-                            "-d", print_settings.custom_custom_printer_name or print_settings.printer_name,
-                            abs_path
-                        ],
-                        capture_output=True,
-                        text=True,
-                        check=True
-                    )
+            # subprocess.run(
+            #             [
+            #                 "lp",
+            #                 "-d", print_settings.custom_custom_printer_name or print_settings.printer_name,
+            #                 abs_path
+            #             ],
+            #             capture_output=True,
+            #             text=True,
+            #             check=True
+            #         )
+            print_receipt_with_columns(data)
             print("lp command succeeded")
         except subprocess.CalledProcessError as e:
             frappe.log_error(f"lp command failed: {e.stderr}", "Network Print Error")
@@ -275,3 +276,137 @@ def network_printing_override(
     except Exception as e:
         frappe.log_error(str(e), "General Network Print Error")
         return f"An error occurred: {str(e)}"
+    
+from escpos.printer import Network # Import your printer class
+from escpos.constants import QR_ECLEVEL_L # Needed for the full receipt function
+
+def print_receipt_with_columns( doc):
+    """
+    Revised print function using p.software_columns() for table sections.
+    """
+    # Helper for formatting with fallback for zero taxes
+    def get_tax_label(total_taxes):
+        return "0.00" if total_taxes == 0.0 else "N/A"
+
+    # --- Setup (Same as before) ---
+    p = Network('192.168.0.52', port=9100, profile="TM-T88III")
+    p.hw('INIT')
+    p.ln(2)
+
+    # 1. Company Header
+    p.set(align='center', custom_size=True, width=2, height=2, bold=True)
+    p.textln(doc['company'].upper())
+    p.ln(2)
+    p.set(custom_size=False, width=1, height=1, bold=False, align='left')
+
+    # 2. Header Info
+    p.set(bold=True)
+    p.text('VAT/Tax No: ')
+    p.set(bold=False)
+    p.textln(doc['vat_tax_no'])
+
+    p.set(bold=True)
+    p.text('Date: ')
+    p.set(bold=False)
+    p.textln(doc['posting_date'])
+
+    p.set(bold=True)
+    p.text('Time: ')
+    p.set(bold=False)
+    p.textln(doc['posting_time'])
+
+    # 3. QR Code (Skipping detail for brevity, assuming doc['custom_zatca_code'])
+    if doc.get('custom_zatca_code'):
+         p.ln()
+         p.qr(doc['custom_zatca_code'], ec=QR_ECLEVEL_L, size=3, center=True)
+         p.ln(2)
+         p.set(align='left')
+
+    # 4. Horizontal Rule
+    p.textln("-" * 42)
+
+    # 5. Table Header
+    p.set(bold=True)
+    # Define widths for header using the software_columns format
+    header_list = ["QTY", "ITEM", "RATE", "TAX", "TOTAL"]
+    widths = [3, 20, 6, 5, 8]
+    aligns = ['right', 'left', 'right', 'right', 'right']
+
+    p.software_columns(
+        text_list=header_list,
+        widths=widths,
+        align=aligns
+    )
+    p.set(bold=False)
+    p.textln("-" * 42)
+    
+    # ------------------------------------------------------------------
+    ## 6. Table Items (Loop) using `software_columns` 📜
+    # ------------------------------------------------------------------
+
+    # Reusing widths and aligns from the header for the data rows
+    
+    for item in doc['items']:
+        item_list = [
+            str(int(item['qty'])), # QTY (Right)
+            item['item_name'][:20].strip(), # ITEM (Left)
+            item['get_formatted']("rate"), # RATE (Right)
+            get_tax_label(doc['total_taxes_and_charges']), # TAX (Right)
+            item['get_formatted']("amount") # TOTAL (Right)
+        ]
+        
+        p.software_columns(
+            text_list=item_list,
+            widths=widths,
+            align=aligns
+        )
+
+    p.textln("-" * 42)
+
+    # ------------------------------------------------------------------
+    ## 7. Main Totals using `software_columns` 💰
+    # ------------------------------------------------------------------
+
+    # Total columns: [Label, Value]
+    total_widths = [30, 12] # Total width is 42
+    total_aligns = ['left', 'right']
+
+    # SUBTOTAL
+    p.software_columns(
+        text_list=["SUBTOTAL:", doc['get_formatted']("base_total")],
+        widths=total_widths,
+        align=total_aligns
+    )
+    
+    # TAXES
+    p.software_columns(
+        text_list=["TAXES:", doc['get_formatted']("total_taxes_and_charges")],
+        widths=total_widths,
+        align=total_aligns
+    )
+    p.ln()
+
+    # NET TOTAL (Double-height & double-width, Bold)
+    p.set(custom_size=True, width=2, height=2, bold=True)
+
+    # Adjust widths for double-size font (it roughly uses half the character space)
+    final_widths = [15, 6] # Approximate new column widths
+    
+    p.software_columns(
+        text_list=["NET TOTAL:", doc['get_formatted']("grand_total")],
+        widths=final_widths,
+        align=total_aligns # Alignment remains the same
+    )
+
+    p.ln(2)
+
+    # --- Footer (Same as before) ---
+    p.set(custom_size=False, width=1, height=1, bold=False)
+    p.textln("-" * 42)
+    p.set(align='center')
+    p.textln("Thank you for your business!")
+    p.ln()
+    p.textln("-" * 42)
+
+    # 9. Cut
+    p.cut(mode='PART', feed=False)
