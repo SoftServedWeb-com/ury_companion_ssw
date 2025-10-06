@@ -289,7 +289,7 @@ def print_receipt_with_columns(doc):
         return "0.00" if total_taxes == 0.0 else "N/A"
 
     # --- Setup (Same as before) ---
-    p = Network('192.168.0.52', port=9100, profile="TM-T88III")
+    p = Network('192.168.1.52', port=9100, profile="TM-T88III")
     p.hw('INIT')
     p.ln(2)
 
