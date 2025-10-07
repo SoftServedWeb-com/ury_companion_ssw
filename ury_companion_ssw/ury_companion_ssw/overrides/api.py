@@ -211,52 +211,19 @@ def network_printing_override(
             data = frappe.get_doc(doctype, name)
         else:
             data = doc
-
-        # try:            
-        #     # generate the raw data ( applying the jinja template )
-        #     result = get_rendered_raw_commands(doc=data, print_format=print_format)
-        #     print("result", result["raw_commands"])
-
-        # except Exception as e:
-            
-        #     frappe.log_error(f"Error generating raw commands: {str(e)}", "Network Print Error")
-        #     print("e", e)
-        #     return f"Failed to generate raw commands for printing: {str(e)}"
-
-        # # save the raw data to a .bin file
-        # temp_dir = os.path.join(frappe.get_site_path(), "public", "files", "temp_prints")
-        # frappe.create_folder(temp_dir)
-        # bin_path = os.path.join(temp_dir, f"print-{data.name}.bin")
-        # abs_path = os.path.abspath(bin_path)
-        # with open(abs_path, "w") as f:
-        #     f.write(result["raw_commands"])
         
-        try:
-            # subprocess.run(
-            #             [
-            #                 "lp",
-            #                 "-d", print_settings.custom_custom_printer_name or print_settings.printer_name,
-            #                 abs_path
-            #             ],
-            #             capture_output=True,
-            #             text=True,
-            #             check=True
-            #         )
-            print_receipt_with_columns(data)
-            print("lp command succeeded")
-        except subprocess.CalledProcessError as e:
-            frappe.log_error(f"lp command failed: {e.stderr}", "Network Print Error")
-            print("e.stderr", e.stderr)
-            return f"Failed to send print job via lp: {e.stderr}"
-
-        # 6. Cleanup (Optional, but good practice)
-        # try:
-        #     os.remove(bin_path)
-        # except Exception:
-        #     pass # Ignore cleanup errors
-
-        # 7. Update POS Invoice status (Kept original logic)
-        if doctype == "POS Invoice":
+        if(print_settings.custom_use_python_escpos):
+            if(doctype == "POS Invoice"):
+                res = print_pos_invoice(data, print_settings)
+            elif(doctype == "URY KOT"):
+                res = print_kot_order(data, print_settings)
+            else:   
+                pass
+        else:
+            pass
+        
+        # if the document is a POS Invoice and the script printed successfully, set the invoice_printed flag to 1
+        if doctype == "POS Invoice" and res:
             restaurant_table, invoice_printed = frappe.db.get_value(
                 "POS Invoice", name, ["restaurant_table", "invoice_printed"]
             )
@@ -276,14 +243,191 @@ def network_printing_override(
     except Exception as e:
         frappe.log_error(str(e), "General Network Print Error")
         return f"An error occurred: {str(e)}"
-    
-from escpos.printer import Network # Import your printer class
+
+from escpos.printer import Network,Dummy # Import your printer class
 from escpos.constants import QR_ECLEVEL_L # Needed for the full receipt function
+
+def print_pos_invoice(doc, print_settings):
+    print("Printing POS Invoice")
+    company = frappe.get_doc("Company", doc.company)
+    tax_id = frappe.db.get_value("Company", doc.company, "tax_id")
+    TOTAL_WIDTH = 42
+    
+    # Qty (4) | Item Name (19) | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
+    COLUMN_WIDTHS = [4, 19, 8, 9] 
+    COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
+
+    # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
+    header_list = ["QTY", "ITEM", "RATE", "AMOUNT"]
+    
+    # This list is no longer needed since we print inside the loop
+    # print_items_list = [] 
+    
+    d = Dummy()
+    d.textln(company.name)
+    d.ln(2)
+    d.textln(f"VAT/Tax No: {tax_id}")
+    d.ln(2)
+    
+    if(doc.custom_zatca_code):
+         d.qr(doc.custom_zatca_code, ec=QR_ECLEVEL_L, size=5, center=True)
+    
+    # --- 1. Print the Header Row ---
+    try:
+        # Print the Header
+        d.software_columns(header_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+    except Exception as e:
+        print(f"Error printing header: {e}")
+        return "Error: Failed to print header"
+
+    d.textln("-" * sum(COLUMN_WIDTHS)) # Print separator line
+    d.ln(1)
+    
+    # --- 2. Print Each Item Row in a Loop ---
+    for item in doc.items:
+        # 1. Extract and format the data for the columns
+        item = item.as_dict()
+        try:
+            # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
+            qty_str = str(int(item.get('qty', 0)))
+            # Truncate item name to fit column width
+            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[1]] 
+            rate_str = f"{item.get('rate', 0.0):.2f}"
+            amount_str = f"{item.get('amount', 0.0):.2f}"
+        except Exception as e:
+            print(f"Error processing item: {e}")
+            continue # Skip to the next item
+
+        # 2. Create the list of strings for the current row
+        text_list = [
+            qty_str,
+            item_name_str,
+            rate_str,
+            amount_str
+        ]
+        
+        # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
+        try:
+            d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+        except Exception as e:
+            # If printing fails mid-receipt, log the error but allow the function to finish
+            print(f"Error printing item row: {e}")
+
+    d.ln(2) # Add space after items
+    d.textln("-" * sum(COLUMN_WIDTHS)) # Print final separator line
+    
+    # The rest of the invoice content goes here...
+    # Format the values (assuming doc.total, doc.total_taxes_and_charges, doc.grand_total are available)
+    subtotal_str = f"{doc.total:.2f}"
+    tax_str = f"{doc.total_taxes_and_charges:.2f}"
+    grand_total_str = f"{doc.grand_total:.2f}"
+    
+    # Switch to Right Alignment
+    d.set(align='right')
+    
+    # Print Subtotal
+    # Format the entire line to span the TOTALS_WIDTH, with the label on the left and value on the right
+    subtotal_line = f"SUBTOTAL: {subtotal_str}"
+    d.textln(f"{subtotal_line:>{TOTAL_WIDTH}}")
+
+    # Print Tax
+    tax_line = f"TOTAL TAX: {tax_str}"
+    d.textln(f"{tax_line:>{TOTAL_WIDTH}}")
+    
+    # Separator before Grand Total
+    d.textln("=" * TOTAL_WIDTH) 
+
+    # Print Grand Total
+    d.set(bold=True) # Optional: Emphasize the grand total
+    grand_total_line = f"GRAND TOTAL: {grand_total_str}"
+    d.textln(f"{grand_total_line:>{TOTAL_WIDTH}}")
+    d.set(bold=False)
+    
+    # CRITICAL: Reset alignment back to left for any subsequent text
+    d.set(align='left')
+    d.cut(mode='PART', feed=False)
+    
+    print("output : ", d.output)
+    p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
+    p.hw('INIT')
+    p._raw(d.output)
+    p.cut(mode='PART', feed=False)
+    p.close()
+    # Placeholder for demonstration (remove in actual ESC/POS code)
+    # The final print of text_list here only shows the LAST item's data, which is fine for debugging
+    return "Success: Receipt printed via CUPS (BIN method)."
+
+def print_kot_order(doc, print_settings):
+    print("Printing POS Invoice")
+    TOTAL_WIDTH = 42
+    
+    # Qty (4) | Item Name (19) | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
+    COLUMN_WIDTHS = [2, 20] 
+    COLUMN_ALIGNMENT = ['left',  'right']
+
+    # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
+    header_list = ["ITEM", "QTY"]
+    
+    # This list is no longer needed since we print inside the loop
+    # print_items_list = [] 
+    
+    d = Dummy()
+    # --- 1. Print the Header Row ---
+    try:
+        # Print the Header
+        d.software_columns(header_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+    except Exception as e:
+        print(f"Error printing header: {e}")
+        return "Error: Failed to print header"
+
+    d.textln("-" * sum(COLUMN_WIDTHS)) # Print separator line
+    d.ln(1)
+    
+    # --- 2. Print Each Item Row in a Loop ---
+    for item in doc.items:
+        # 1. Extract and format the data for the columns
+        item = item.as_dict()
+        try:
+            # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
+            qty_str = str(int(item.get('qty', 0)))
+            # Truncate item name to fit column width
+            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[1]] 
+        except Exception as e:
+            print(f"Error processing item: {e}")
+            continue # Skip to the next item
+
+        # 2. Create the list of strings for the current row
+        text_list = [
+            item_name_str,
+            qty_str,
+        ]
+        
+        # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
+        try:
+            d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+        except Exception as e:
+            # If printing fails mid-receipt, log the error but allow the function to finish
+            print(f"Error printing item row: {e}")
+
+    d.cut(mode='PART', feed=False)
+    
+    print("output : ", d.output)
+    p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
+    p.hw('INIT')
+    p._raw(d.output)
+    p.cut(mode='PART', feed=False)
+    p.close()
+    # Placeholder for demonstration (remove in actual ESC/POS code)
+    # The final print of text_list here only shows the LAST item's data, which is fine for debugging
+    return "Success: Receipt printed via CUPS (BIN method)."
 
 def print_receipt_with_columns(doc):
     """
     Revised print function using p.software_columns() for table sections.
     """
+    print("doc", doc.as_dict())
+    doc = doc.as_dict()
+    company = frappe.get_doc("Company", doc['company'])
     # Helper for formatting with fallback for zero taxes
     def get_tax_label(total_taxes):
         return "0.00" if total_taxes == 0.0 else "N/A"
@@ -295,7 +439,7 @@ def print_receipt_with_columns(doc):
 
     # 1. Company Header
     p.set(align='center', custom_size=True, width=2, height=2, bold=True)
-    p.textln(doc['company'].upper())
+    p.textln(company.company_name_in_arabic.upper())
     p.ln(2)
     p.set(custom_size=False, width=1, height=1, bold=False, align='left')
 
@@ -303,7 +447,7 @@ def print_receipt_with_columns(doc):
     p.set(bold=True)
     p.text('VAT/Tax No: ')
     p.set(bold=False)
-    p.textln(doc['vat_tax_no'])
+    p.textln(company.tax_id)
 
     p.set(bold=True)
     p.text('Date: ')
@@ -407,6 +551,8 @@ def print_receipt_with_columns(doc):
     p.textln("Thank you for your business!")
     p.ln()
     p.textln("-" * 42)
-
+    
     # 9. Cut
     p.cut(mode='PART', feed=False)
+    p.close()
+    return "Success: Receipt printed via CUPS (BIN method)."

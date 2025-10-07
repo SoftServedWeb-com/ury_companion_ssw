@@ -115,7 +115,8 @@ required_apps = ["erpnext"]
 # Override standard doctype classes
 
 override_doctype_class = {
-	"URY KOT": "ury_companion_ssw.ury_companion_ssw.overrides.doctype.ury_kot.CustomURYKOT"
+	"URY KOT": "ury_companion_ssw.ury_companion_ssw.overrides.doctype.ury_kot.CustomURYKOT",
+	"Network Printer Settings": "ury_companion_ssw.ury_companion_ssw.overrides.doctype.network_printer_settings.NetworkPrinterSettingsOverride"
 }
 
 # Document Events
