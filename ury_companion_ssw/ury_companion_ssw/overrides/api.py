@@ -254,7 +254,7 @@ def print_pos_invoice(doc, print_settings):
     TOTAL_WIDTH = 42
     
     # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
-    COLUMN_WIDTHS = [19 ,4, 8, 11] 
+    COLUMN_WIDTHS = [20,5,6,11] 
     COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
 
     # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
