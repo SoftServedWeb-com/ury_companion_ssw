@@ -374,7 +374,7 @@ def print_pos_invoice(doc, print_settings):
     print("OUTPUT", d.output)
     p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
     p.hw('INIT')
-    p._raw(d.output())
+    p._raw(d.output)
     p.close()
     # Placeholder for demonstration (remove in actual ESC/POS code)
     # The final print of text_list here only shows the LAST item's data, which is fine for debugging
