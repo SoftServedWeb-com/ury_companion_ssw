@@ -211,7 +211,7 @@ def network_printing_override(
             data = frappe.get_doc(doctype, name)
         else:
             data = doc
-        
+        print("PRINTING DOCUMENT", doctype)
         if(print_settings.custom_use_python_escpos):
             if(doctype == "POS Invoice"):
                 res = print_pos_invoice(data, print_settings)
