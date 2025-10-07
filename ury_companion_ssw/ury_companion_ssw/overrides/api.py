@@ -251,14 +251,6 @@ def print_pos_invoice(doc, print_settings):
     print("Printing POS Invoice")
     company = frappe.get_doc("Company", doc.company)
     tax_id = frappe.db.get_value("Company", doc.company, "tax_id")
-    TOTAL_WIDTH = 42
-    
-    # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
-    COLUMN_WIDTHS = [20,5,6,11] 
-    COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
-
-    # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
-    header_list = ["ITEM", "QTY", "RATE", "AMOUNT"]
     
     # This list is no longer needed since we print inside the loop
     # print_items_list = [] 
@@ -284,6 +276,14 @@ def print_pos_invoice(doc, print_settings):
     if doc.cashier:
         d.textln(f"Cashier : {doc.cashier}")
     d.ln(1)
+    TOTAL_WIDTH = 42
+    
+    # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
+    COLUMN_WIDTHS = [20,5,6,11] 
+    COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
+
+    # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
+    header_list = ["ITEM", "QTY", "RATE", "AMOUNT"]
     d.textln("-" * sum(COLUMN_WIDTHS))
 
     # --- 1. Print the Header Row ---
@@ -306,9 +306,9 @@ def print_pos_invoice(doc, print_settings):
         item = item.as_dict()
         try:
             # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
+            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[0]] 
             qty_str = str(int(item.get('qty', 0)))
             # Truncate item name to fit column width
-            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[0]] 
             rate_str = f"{item.get('rate', 0.0):.2f}"
             amount_str = f"{item.get('amount', 0.0):.2f}"
         except Exception as e:
