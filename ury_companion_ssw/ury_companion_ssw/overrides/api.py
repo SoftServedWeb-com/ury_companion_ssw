@@ -127,7 +127,7 @@ def generate_zatca_qr_data_and_image(doc):
     """
     # --- 1. Data Retrieval and Validation (Simplified) ---
     # Retrieve Seller Name
-    seller_name = frappe.db.get_value("Company", doc.company, "company_name_in_arabic")
+    seller_name = frappe.db.get_value("Company", doc.company, "name") #TODO: need to change this
     if not seller_name:
         frappe.throw(f"Arabic name missing for {doc.company} in the Company document")
 
@@ -264,7 +264,8 @@ def print_pos_invoice(doc, print_settings):
     # print_items_list = [] 
     
     d = Dummy()
-    d.set(bold=True,align='center',double_height=True)
+    d.profile.profile_data["media"]["width"]["pixels"] = 576
+    d.set(bold=True,align='center',double_height=True, )
     d.textln(company.company_name_in_arabic or company.name.upper())
     d.set(double_height=False)
     d.textln(f"VAT/Tax No: {tax_id}")
@@ -279,7 +280,7 @@ def print_pos_invoice(doc, print_settings):
         d.textln(f"Order Type : {doc.order_type}")
     if doc.no_of_pax:
         d.textln(f"Table/Pax : {doc.no_of_pax}") # Added table/pax info
-    d.textln(f"Date/Time : {doc.posting_date} {doc.posting_time[:8]}")
+    d.textln(f"Date/Time : {doc.get_formatted('posting_date')} {doc.get_formatted('posting_time')[:8]}")
     if doc.cashier:
         d.textln(f"Cashier : {doc.cashier}")
     d.ln(1)
@@ -370,16 +371,16 @@ def print_pos_invoice(doc, print_settings):
     # CRITICAL: Reset alignment back to left for any subsequent text
     d.set(align='left')
     d.cut(mode='PART', feed=False)
-    
+    print("OUTPUT", d.output)
     p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
     p.hw('INIT')
-    p._raw(d.output)
     p.close()
     # Placeholder for demonstration (remove in actual ESC/POS code)
     # The final print of text_list here only shows the LAST item's data, which is fine for debugging
     return "Success: Receipt printed via CUPS (BIN method)."
 
 def print_kot_order(doc, print_settings):
+    print("Printing KOT Order")
     # KOT printouts are typically narrow (e.g., 42 chars)
     TOTAL_WIDTH = 42
 
@@ -392,7 +393,7 @@ def print_kot_order(doc, print_settings):
     header_list = ["QTY", "F", "ITEM & COMMENTS"]
 
     d = Dummy()
-    
+    d.profile.profile_data["media"]["width"]["pixels"] = 576
     # ======================== HEADER SECTION ========================
     d.set(bold=True, align='center', double_height=True)
     d.textln("--- KITCHEN ORDER TICKET ---")
@@ -401,7 +402,7 @@ def print_kot_order(doc, print_settings):
     # Print the KOT ID, Date, and Time
     d.textln(f"KOT ID: {doc.name}")
     d.textln(f"ORDER NO: {doc.order_no}")
-    d.textln(f"DATE: {doc.date.strftime('%Y-%m-%d')} TIME: {doc.time.strftime('%H:%M:%S')}")
+    d.textln(f"DATE: {doc.get_formatted('date')} TIME: {doc.get_formatted('time')}")
 
     # Order Details
     if doc.customer_name:
@@ -462,24 +463,24 @@ def print_kot_order(doc, print_settings):
             d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
             d.set(bold=False)
 
-        # --- Handle CANCELLED Items ---
-        if qty_cancel > 0:
-            items_printed = True
+    # --- Handle CANCELLED Items ---
+    if qty_cancel > 0:
+        items_printed = True
             
-            # Use negative sign or 'Cancelled' text for clarity
-            qty_str = f"-{int(qty_cancel)}"
-            item_comment_str = item_name
+        # Use negative sign or 'Cancelled' text for clarity
+        qty_str = f"-{int(qty_cancel)}"
+        item_comment_str = item_name
             
-            text_list = [
-                qty_str,
-                "C", # Flag for CANCEL
-                item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
-            ]
+        text_list = [
+            qty_str,
+            "C", # Flag for CANCEL
+            item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+        ]
             
-            # Print the CANCEL item row (use underlining or italics if supported by printer profile)
-            d.set(bold=True, underline=True)
-            d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
-            d.set(bold=False, underline=False)
+        # Print the CANCEL item row (use underlining or italics if supported by printer profile)
+        d.set(bold=True, underline=True)
+        d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+        d.set(bold=False, underline=False)
 
     # Final Separator
     d.textln("=" * TOTAL_WIDTH)
@@ -493,14 +494,12 @@ def print_kot_order(doc, print_settings):
     d.ln(2)
     
     # ======================== FOOTER & PRINTING ========================
-    d.textln(f"Printed by: {doc.user} at {datetime.datetime.now().strftime('%H:%M:%S')}")
     d.cut(mode='PART', feed=False)
-    
     # Actual printing logic
     p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
     p.hw('INIT')
     p._raw(d.output)
-    p.cut(mode='PART', feed=False)
+
     p.close()
     
     return "Success: KOT printed."
