@@ -266,7 +266,7 @@ def print_pos_invoice(doc, print_settings):
     d = Dummy()
     d.profile.profile_data["media"]["width"]["pixels"] = 576
     d.set(bold=True,align='center',double_height=True, )
-    d.textln(company.company_name_in_arabic or company.name.upper())
+    d.textln(company.name.upper())
     d.set(double_height=False)
     d.textln(f"VAT/Tax No: {tax_id}")
     d.set(bold=False)
