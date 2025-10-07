@@ -253,29 +253,45 @@ def print_pos_invoice(doc, print_settings):
     tax_id = frappe.db.get_value("Company", doc.company, "tax_id")
     TOTAL_WIDTH = 42
     
-    # Qty (4) | Item Name (19) | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
-    COLUMN_WIDTHS = [4, 19, 8, 9] 
+    # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
+    COLUMN_WIDTHS = [19 ,4, 8, 11] 
     COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
 
     # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
-    header_list = ["QTY", "ITEM", "RATE", "AMOUNT"]
+    header_list = ["ITEM", "QTY", "RATE", "AMOUNT"]
     
     # This list is no longer needed since we print inside the loop
     # print_items_list = [] 
     
     d = Dummy()
-    d.textln(company.name)
-    d.ln(2)
+    d.set(bold=True,align='center',double_height=True)
+    d.textln(company.company_name_in_arabic or company.name.upper())
+    d.set(double_height=False)
     d.textln(f"VAT/Tax No: {tax_id}")
-    d.ln(2)
-    
+    d.set(bold=False)
     if(doc.custom_zatca_code):
          d.qr(doc.custom_zatca_code, ec=QR_ECLEVEL_L, size=5, center=True)
-    
+    d.set(align='left')
+
+# --- New Transaction Details Section ---
+    d.textln(f"Invoice No.: {doc.name}")
+    if doc.order_type:
+        d.textln(f"Order Type : {doc.order_type}")
+    if doc.no_of_pax:
+        d.textln(f"Table/Pax : {doc.no_of_pax}") # Added table/pax info
+    d.textln(f"Date/Time : {doc.posting_date} {doc.posting_time[:8]}")
+    if doc.cashier:
+        d.textln(f"Cashier : {doc.cashier}")
+    d.ln(1)
+    d.textln("-" * sum(COLUMN_WIDTHS))
+
     # --- 1. Print the Header Row ---
+    d.ln(1)
     try:
         # Print the Header
+        d.set(bold=True)
         d.software_columns(header_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+        d.set(bold=False)
     except Exception as e:
         print(f"Error printing header: {e}")
         return "Error: Failed to print header"
@@ -291,7 +307,7 @@ def print_pos_invoice(doc, print_settings):
             # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
             qty_str = str(int(item.get('qty', 0)))
             # Truncate item name to fit column width
-            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[1]] 
+            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[0]] 
             rate_str = f"{item.get('rate', 0.0):.2f}"
             amount_str = f"{item.get('amount', 0.0):.2f}"
         except Exception as e:
@@ -300,8 +316,8 @@ def print_pos_invoice(doc, print_settings):
 
         # 2. Create the list of strings for the current row
         text_list = [
-            qty_str,
             item_name_str,
+            qty_str,
             rate_str,
             amount_str
         ]
@@ -345,81 +361,149 @@ def print_pos_invoice(doc, print_settings):
     
     # CRITICAL: Reset alignment back to left for any subsequent text
     d.set(align='left')
+    d.set(bold=True, align='center')
+    d.ln(2)
+    d.textln("THANK YOU FOR VISITING!")
+    d.set(bold=False)
+    d.ln(1)
+
+    # CRITICAL: Reset alignment back to left for any subsequent text
+    d.set(align='left')
     d.cut(mode='PART', feed=False)
     
-    print("output : ", d.output)
     p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
     p.hw('INIT')
     p._raw(d.output)
-    p.cut(mode='PART', feed=False)
     p.close()
     # Placeholder for demonstration (remove in actual ESC/POS code)
     # The final print of text_list here only shows the LAST item's data, which is fine for debugging
     return "Success: Receipt printed via CUPS (BIN method)."
 
 def print_kot_order(doc, print_settings):
-    print("Printing POS Invoice")
+    # KOT printouts are typically narrow (e.g., 42 chars)
     TOTAL_WIDTH = 42
-    
-    # Qty (4) | Item Name (19) | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
-    COLUMN_WIDTHS = [2, 20] 
-    COLUMN_ALIGNMENT = ['left',  'right']
 
-    # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
-    header_list = ["ITEM", "QTY"]
-    
-    # This list is no longer needed since we print inside the loop
-    # print_items_list = [] 
-    
+    # Column Structure: Qty (4) | Flag (3) | Item Name (35) -> Total 42
+    # Flag: 'M' (Make/New) or 'C' (Cancel)
+    COLUMN_WIDTHS = [4, 3, 35]
+    COLUMN_ALIGNMENT = ['right', 'center', 'left']
+
+    # Header for the KOT
+    header_list = ["QTY", "F", "ITEM & COMMENTS"]
+
     d = Dummy()
-    # --- 1. Print the Header Row ---
+    
+    # ======================== HEADER SECTION ========================
+    d.set(bold=True, align='center', double_height=True)
+    d.textln("--- KITCHEN ORDER TICKET ---")
+    d.set(double_height=False, bold=False)
+    
+    # Print the KOT ID, Date, and Time
+    d.textln(f"KOT ID: {doc.name}")
+    d.textln(f"ORDER NO: {doc.order_no}")
+    d.textln(f"DATE: {doc.date.strftime('%Y-%m-%d')} TIME: {doc.time.strftime('%H:%M:%S')}")
+
+    # Order Details
+    if doc.customer_name:
+        d.textln(f"Customer: {doc.customer_name}")
+    if doc.restaurant_table:
+        d.textln(f"Table: {doc.restaurant_table}")
+    if doc.branch:
+        d.textln(f"Branch: {doc.branch}")
+    
+    d.ln(1)
+    
+    # ======================== ITEMS SECTION ========================
+    d.set(bold=True)
+    d.textln("=" * TOTAL_WIDTH)
+    
+    # Print the Header Row
     try:
-        # Print the Header
         d.software_columns(header_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
     except Exception as e:
         print(f"Error printing header: {e}")
         return "Error: Failed to print header"
 
-    d.textln("-" * sum(COLUMN_WIDTHS)) # Print separator line
-    d.ln(1)
+    d.textln("-" * TOTAL_WIDTH)
+    d.set(bold=False)
     
-    # --- 2. Print Each Item Row in a Loop ---
-    for item in doc.items:
-        # 1. Extract and format the data for the columns
+    # Track if any items were printed
+    items_printed = False
+
+    # Print Each Item Row
+    for item in doc.kot_items:
         item = item.as_dict()
-        try:
-            # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
-            qty_str = str(int(item.get('qty', 0)))
-            # Truncate item name to fit column width
-            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[1]] 
-        except Exception as e:
-            print(f"Error processing item: {e}")
-            continue # Skip to the next item
-
-        # 2. Create the list of strings for the current row
-        text_list = [
-            item_name_str,
-            qty_str,
-        ]
+        item_name = item.get('item_name', '')
         
-        # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
-        try:
+        # Determine quantities for 'Make' and 'Cancel'
+        # 'quantity' from the doc is the NEW/MAKE quantity
+        qty_make = float(item.get('quantity', 0) or 0)
+        # 'cancelled_qty' is the CANCELLED quantity
+        qty_cancel = float(item.get('cancelled_qty', 0) or 0)
+        
+        # --- Handle NEW/MAKE Items ---
+        if qty_make > 0:
+            items_printed = True
+            
+            # Format quantity and item string
+            qty_str = str(int(qty_make))
+            item_comment_str = item_name
+            if item.get('comments'):
+                item_comment_str += f" ({item['comments']})"
+            
+            text_list = [
+                qty_str,
+                "M", # Flag for MAKE / NEW
+                item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+            ]
+            
+            # Print the MAKE item row (typically bold for attention)
+            d.set(bold=True)
             d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
-        except Exception as e:
-            # If printing fails mid-receipt, log the error but allow the function to finish
-            print(f"Error printing item row: {e}")
+            d.set(bold=False)
 
+        # --- Handle CANCELLED Items ---
+        if qty_cancel > 0:
+            items_printed = True
+            
+            # Use negative sign or 'Cancelled' text for clarity
+            qty_str = f"-{int(qty_cancel)}"
+            item_comment_str = item_name
+            
+            text_list = [
+                qty_str,
+                "C", # Flag for CANCEL
+                item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+            ]
+            
+            # Print the CANCEL item row (use underlining or italics if supported by printer profile)
+            d.set(bold=True, underline=True)
+            d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+            d.set(bold=False, underline=False)
+
+    # Final Separator
+    d.textln("=" * TOTAL_WIDTH)
+    
+    # Print message if the KOT was empty (e.g., if neither quantity nor cancelled_qty was > 0 for any item)
+    if not items_printed:
+        d.set(align='center', bold=True)
+        d.textln("NO ITEMS TO PRINT ON THIS KOT")
+        d.set(align='left', bold=False)
+
+    d.ln(2)
+    
+    # ======================== FOOTER & PRINTING ========================
+    d.textln(f"Printed by: {doc.user} at {datetime.datetime.now().strftime('%H:%M:%S')}")
     d.cut(mode='PART', feed=False)
     
-    print("output : ", d.output)
+    # Actual printing logic
     p = Network(print_settings.server_ip, port=print_settings.port, profile='TM-T88III')
     p.hw('INIT')
     p._raw(d.output)
     p.cut(mode='PART', feed=False)
     p.close()
-    # Placeholder for demonstration (remove in actual ESC/POS code)
-    # The final print of text_list here only shows the LAST item's data, which is fine for debugging
-    return "Success: Receipt printed via CUPS (BIN method)."
+    
+    return "Success: KOT printed."
 
 def print_receipt_with_columns(doc):
     """
