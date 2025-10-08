@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{title}-{main_category}",
  "creation": "2025-10-03 19:15:32.691231",
@@ -50,7 +51,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-04 14:58:55.446166",
+ "modified": "2025-10-08 10:08:32.677930",
  "modified_by": "Administrator",
  "module": "Ury Companion Ssw",
  "name": "Sub Category",

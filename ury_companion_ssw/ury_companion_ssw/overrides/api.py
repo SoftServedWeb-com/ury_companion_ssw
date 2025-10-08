@@ -257,6 +257,11 @@ def print_pos_invoice(doc, print_settings):
     
     d = Dummy()
     d.profile.profile_data["media"]["width"]["pixels"] = 576
+    d.set(font='b')
+    if(company.company_logo):
+        abs_path = os.path.abspath(os.path.join(frappe.get_site_path('public'), company.company_logo.lstrip('/')))
+        d.image(abs_path, center=True)
+    d.ln(1)
     d.set(bold=True,align='center',double_height=True, )
     d.textln(company.name.upper())
     d.set(double_height=False)

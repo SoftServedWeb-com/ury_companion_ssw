@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "field:title",
  "creation": "2025-10-03 19:13:48.107240",
@@ -46,7 +47,7 @@
    "link_fieldname": "main_category"
   }
  ],
- "modified": "2025-10-03 19:27:25.160926",
+ "modified": "2025-10-08 10:08:13.396665",
  "modified_by": "Administrator",
  "module": "Ury Companion Ssw",
  "name": "Main Category",
