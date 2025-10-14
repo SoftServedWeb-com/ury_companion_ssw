@@ -281,10 +281,10 @@ def print_pos_invoice(doc, print_settings):
     if doc.cashier:
         d.textln(f"Cashier : {doc.cashier}")
     d.ln(1)
-    TOTAL_WIDTH = 50
+    TOTAL_WIDTH = 48
     
     # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
-    COLUMN_WIDTHS = [25,5,6,14] 
+    COLUMN_WIDTHS = [24,5,6,13] 
     COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
 
     # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
