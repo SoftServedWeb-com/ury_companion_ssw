@@ -403,7 +403,6 @@ def print_kot_order(doc, print_settings):
     
     # Print the KOT ID, Date, and Time
     d.textln(f"KOT ID: {doc.name}")
-    d.textln(f"ORDER NO: {doc.order_no}")
     d.textln(f"DATE: {doc.get_formatted('date')} TIME: {doc.get_formatted('time')}")
 
     # Order Details
@@ -493,8 +492,10 @@ def print_kot_order(doc, print_settings):
         d.textln("NO ITEMS TO PRINT ON THIS KOT")
         d.set(align='left', bold=False)
 
-    d.ln(2)
-    
+    d.ln(1)
+    d.set(double_width=True, align='center')
+    d.textln(f"ORDER NO: {doc.order_no}")
+    d.set(double_width=False, align='left')
     # ======================== FOOTER & PRINTING ========================
     d.cut(mode='PART', feed=False)
     # Actual printing logic
