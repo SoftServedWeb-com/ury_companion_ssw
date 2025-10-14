@@ -403,7 +403,9 @@ def print_kot_order(doc, print_settings):
     
     # Print the KOT ID, Date, and Time
     d.textln(f"KOT ID: {doc.name}")
+    d.set(double_width=True)
     d.textln(f"ORDER NO: {doc.order_no}")
+    d.set(double_width=False)
     d.textln(f"DATE: {doc.get_formatted('date')} TIME: {doc.get_formatted('time')}")
 
     # Order Details
