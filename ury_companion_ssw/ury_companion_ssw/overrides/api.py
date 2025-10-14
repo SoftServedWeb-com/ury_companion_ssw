@@ -388,7 +388,7 @@ def print_kot_order(doc, print_settings):
 
     # Column Structure: Qty (4) | Flag (3) | Item Name (35) -> Total 42
     # Flag: 'M' (Make/New) or 'C' (Cancel)
-    COLUMN_WIDTHS = [7, 4, 31]
+    COLUMN_WIDTHS = [31,4,7]
     COLUMN_ALIGNMENT = ['left', 'left', 'left']
 
     # Header for the KOT
@@ -455,7 +455,7 @@ def print_kot_order(doc, print_settings):
                 item_comment_str += f" ({item['comments']})"
             
             text_list = [
-                item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+                item_comment_str[:COLUMN_WIDTHS[0]], # Truncate to fit
                 "M", # Flag for MAKE / NEW
                 qty_str,
             ]
