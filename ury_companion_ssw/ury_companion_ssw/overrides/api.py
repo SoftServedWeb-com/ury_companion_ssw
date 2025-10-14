@@ -392,7 +392,7 @@ def print_kot_order(doc, print_settings):
 
     # Column Structure: Qty (4) | Flag (3) | Item Name (35) -> Total 42
     # Flag: 'M' (Make/New) or 'C' (Cancel)
-    COLUMN_WIDTHS = [4, 3, 35]
+    COLUMN_WIDTHS = [5, 5, 32]
     COLUMN_ALIGNMENT = ['right', 'center', 'left']
 
     # Header for the KOT
