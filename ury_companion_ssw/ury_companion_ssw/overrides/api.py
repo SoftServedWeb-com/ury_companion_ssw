@@ -257,7 +257,7 @@ def print_pos_invoice(doc, print_settings):
     
     d = Dummy()
     d.profile.profile_data["media"]["width"]["pixels"] = 576
-    d.set(font='b')
+    d.set(font='a')
     if(company.company_logo):
         abs_path = os.path.abspath(os.path.join(frappe.get_site_path('public'), company.company_logo.lstrip('/')))
         d.image(abs_path, center=True)
@@ -281,10 +281,10 @@ def print_pos_invoice(doc, print_settings):
     if doc.cashier:
         d.textln(f"Cashier : {doc.cashier}")
     d.ln(1)
-    TOTAL_WIDTH = 42
+    TOTAL_WIDTH = 50
     
     # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
-    COLUMN_WIDTHS = [20,5,6,11] 
+    COLUMN_WIDTHS = [25,5,6,14] 
     COLUMN_ALIGNMENT = ['left', 'left', 'right', 'right']
 
     # CRITICAL FIX 1: Align header names with the data order below (Qty, Item Name, Rate, Amount)
@@ -388,11 +388,11 @@ def print_pos_invoice(doc, print_settings):
 def print_kot_order(doc, print_settings):
     print("Printing KOT Order")
     # KOT printouts are typically narrow (e.g., 42 chars)
-    TOTAL_WIDTH = 42
+    TOTAL_WIDTH = 50
 
     # Column Structure: Qty (4) | Flag (3) | Item Name (35) -> Total 42
     # Flag: 'M' (Make/New) or 'C' (Cancel)
-    COLUMN_WIDTHS = [4, 3, 35]
+    COLUMN_WIDTHS = [10, 10, 30]
     COLUMN_ALIGNMENT = ['right', 'center', 'left']
 
     # Header for the KOT
