@@ -280,7 +280,6 @@ def print_pos_invoice(doc, print_settings):
     d.textln(f"Date/Time : {doc.get_formatted('posting_date')} {doc.get_formatted('posting_time')[:8]}")
     if doc.cashier:
         d.textln(f"Cashier : {doc.cashier}")
-    d.ln(2)
     TOTAL_WIDTH = 48
     
     # Item Name (19) | Qty (4)  | Rate (8) | Amount (9) -> Total 40 (Adjusted widths for total 42 if needed)
@@ -292,7 +291,6 @@ def print_pos_invoice(doc, print_settings):
     d.textln("-" * sum(COLUMN_WIDTHS))
 
     # --- 1. Print the Header Row ---
-    d.ln(2)
     try:
         # Print the Header
         d.set(bold=True)
@@ -303,7 +301,6 @@ def print_pos_invoice(doc, print_settings):
         return "Error: Failed to print header"
 
     d.textln("-" * sum(COLUMN_WIDTHS)) # Print separator line
-    d.ln(2)
     
     # --- 2. Print Each Item Row in a Loop ---
     for item in doc.items:
@@ -335,7 +332,6 @@ def print_pos_invoice(doc, print_settings):
             # If printing fails mid-receipt, log the error but allow the function to finish
             print(f"Error printing item row: {e}")
 
-    d.ln(2) # Add space after items
     d.textln("-" * sum(COLUMN_WIDTHS)) # Print final separator line
     
     # The rest of the invoice content goes here...
