@@ -392,7 +392,7 @@ def print_kot_order(doc, print_settings):
     COLUMN_ALIGNMENT = ['left', 'left', 'left']
 
     # Header for the KOT
-    header_list = ["QTY", "F", "ITEM & COMMENTS"]
+    header_list = ["ITEMS", "F","QTY"]
 
     d = Dummy()
     d.profile.profile_data["media"]["width"]["pixels"] = 576
@@ -455,9 +455,9 @@ def print_kot_order(doc, print_settings):
                 item_comment_str += f" ({item['comments']})"
             
             text_list = [
-                qty_str,
-                "M", # Flag for MAKE / NEW
                 item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+                "M", # Flag for MAKE / NEW
+                qty_str,
             ]
             
             # Print the MAKE item row (typically bold for attention)
@@ -474,9 +474,9 @@ def print_kot_order(doc, print_settings):
         item_comment_str = item_name
             
         text_list = [
-            qty_str,
-            "C", # Flag for CANCEL
             item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+            "C", # Flag for CANCEL
+            qty_str,
         ]
             
         # Print the CANCEL item row (use underlining or italics if supported by printer profile)
