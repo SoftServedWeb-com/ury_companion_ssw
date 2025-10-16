@@ -11,7 +11,7 @@ class CustomURYKOT(URYKOT):
     def on_submit(self):
         print("on_submit")
         invoice_doc = frappe.get_doc("POS Invoice", self.invoice)
-        if(invoice_doc.pos_profile != "Dine In POS"):
+        if(invoice_doc.order_type != "Dine In"):
             self.multi_print_kot()
         super().kotDisplayRealtime()
 
