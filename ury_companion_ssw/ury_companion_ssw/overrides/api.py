@@ -388,11 +388,11 @@ def print_kot_order(doc, print_settings):
 
     # Column Structure: Qty (4) | Flag (3) | Item Name (35) -> Total 42
     # Flag: 'M' (Make/New) or 'C' (Cancel)
-    COLUMN_WIDTHS = [31,4,7]
-    COLUMN_ALIGNMENT = ['left', 'left', 'left']
+    COLUMN_WIDTHS = [30,6,6]
+    COLUMN_ALIGNMENT = ['left', 'right', 'right']
 
     # Header for the KOT
-    header_list = ["ITEMS", "F","QTY"]
+    header_list = ["ITEMS","QTY","RATE"]
 
     d = Dummy()
     d.profile.profile_data["media"]["width"]["pixels"] = 576
@@ -431,57 +431,87 @@ def print_kot_order(doc, print_settings):
     
     # Track if any items were printed
     items_printed = False
+    
+    invoice_doc = frappe.get_doc("POS Invoice", doc.invoice)
+    invoice_items = invoice_doc.items
 
-    # Print Each Item Row
-    for item in doc.kot_items:
+    for item in invoice_items:
+        # 1. Extract and format the data for the columns
         item = item.as_dict()
-        item_name = item.get('item_name', '')
-        
-        # Determine quantities for 'Make' and 'Cancel'
-        # 'quantity' from the doc is the NEW/MAKE quantity
-        qty_make = float(item.get('quantity', 0) or 0)
-        # 'cancelled_qty' is the CANCELLED quantity
-        qty_cancel = float(item.get('cancelled_qty', 0) or 0)
-        
-        # --- Handle NEW/MAKE Items ---
-        if qty_make > 0:
-            items_printed = True
-            
-            # Format quantity and item string
-            qty_str = str(int(qty_make))
-            item_comment_str = item_name
-            if item.get('comments'):
-                item_comment_str += f" ({item['comments']})"
-            
-            text_list = [
-                item_comment_str[:COLUMN_WIDTHS[0]], # Truncate to fit
-                "M", # Flag for MAKE / NEW
-                qty_str,
-            ]
-            
-            # Print the MAKE item row (typically bold for attention)
-            d.set(bold=True)
-            d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
-            d.set(bold=False)
+        try:
+            # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
+            item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[0]] 
+            qty_str = str(int(item.get('qty', 0)))
+            # Truncate item name to fit column width
+            rate_str = f"{item.get('rate', 0.0):.2f}"
+        except Exception as e:
+            print(f"Error processing item: {e}")
+            continue # Skip to the next item
 
-    # --- Handle CANCELLED Items ---
-    if qty_cancel > 0:
-        items_printed = True
-            
-        # Use negative sign or 'Cancelled' text for clarity
-        qty_str = f"-{int(qty_cancel)}"
-        item_comment_str = item_name
-            
+        # 2. Create the list of strings for the current row
         text_list = [
-            item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
-            "C", # Flag for CANCEL
+            item_name_str,
             qty_str,
+            rate_str,
         ]
+        
+        # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
+        try:
+            d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+        except Exception as e:
+            # If printing fails mid-receipt, log the error but allow the function to finish
+            print(f"Error printing item row: {e}")
+    # Print Each Item Row
+    # for item in doc.kot_items:
+    #     item = item.as_dict()
+    #     item_name = item.get('item_name', '')
+        
+    #     # Determine quantities for 'Make' and 'Cancel'
+    #     # 'quantity' from the doc is the NEW/MAKE quantity
+    #     qty_make = float(item.get('quantity', 0) or 0)
+    #     # 'cancelled_qty' is the CANCELLED quantity
+    #     qty_cancel = float(item.get('cancelled_qty', 0) or 0)
+        
+    #     # --- Handle NEW/MAKE Items ---
+    #     if qty_make > 0:
+    #         items_printed = True
             
-        # Print the CANCEL item row (use underlining or italics if supported by printer profile)
-        d.set(bold=True, underline=True)
-        d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
-        d.set(bold=False, underline=False)
+    #         # Format quantity and item string
+    #         qty_str = str(int(qty_make))
+    #         item_comment_str = item_name
+    #         if item.get('comments'):
+    #             item_comment_str += f" ({item['comments']})"
+            
+    #         text_list = [
+    #             item_comment_str[:COLUMN_WIDTHS[0]], # Truncate to fit
+    #             "M", # Flag for MAKE / NEW
+    #             qty_str,
+                
+    #         ]
+            
+    #         # Print the MAKE item row (typically bold for attention)
+    #         d.set(bold=True)
+    #         d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+    #         d.set(bold=False)
+
+    # # --- Handle CANCELLED Items ---
+    # if qty_cancel > 0:
+    #     items_printed = True
+            
+    #     # Use negative sign or 'Cancelled' text for clarity
+    #     qty_str = f"-{int(qty_cancel)}"
+    #     item_comment_str = item_name
+            
+    #     text_list = [
+    #         item_comment_str[:COLUMN_WIDTHS[2]], # Truncate to fit
+    #         "C", # Flag for CANCEL
+    #         qty_str,
+    #     ]
+            
+    #     # Print the CANCEL item row (use underlining or italics if supported by printer profile)
+    #     d.set(bold=True, underline=True)
+    #     d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+    #     d.set(bold=False, underline=False)
 
     # Final Separator
     d.textln("=" * TOTAL_WIDTH)
