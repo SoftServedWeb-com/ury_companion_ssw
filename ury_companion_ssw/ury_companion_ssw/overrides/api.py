@@ -430,18 +430,36 @@ def print_kot_order(doc, print_settings):
     d.set(bold=False)
     
     # Track if any items were printed
-    items_printed = False
     
+    # Get invoice items for rate information
     invoice_doc = frappe.get_doc("POS Invoice", doc.invoice)
     invoice_items = invoice_doc.items
+    
+    # Get KOT items for comment information
+    kot_items = doc.kot_items
+    
+    # Create a mapping of KOT items by item_code for easy lookup
+    kot_items_map = {}
+    for kot_item in kot_items:
+        kot_item_dict = kot_item.as_dict()
+        kot_items_map[kot_item_dict.get('item', '')] = kot_item_dict
 
     for item in invoice_items:
         # 1. Extract and format the data for the columns
         item = item.as_dict()
         try:
-            # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
+            # Get the base item name
             item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[0]] 
-            item_name_str = item_name_str + " " + item.get('comment', '')
+            
+            # Get comment from KOT items if available
+            item_code = item.get('item_code', '')
+            kot_item = kot_items_map.get(item_code, {})
+            comment = kot_item.get('comments', '') or kot_item.get('comment', '')
+            
+            # Append comment to item name if it exists
+            if comment:
+                item_name_str = item_name_str + " (" + comment + ")"
+            
             qty_str = str(int(item.get('qty', 0)))
             # Truncate item name to fit column width
             rate_str = f"{item.get('rate', 0.0):.2f}"
@@ -459,6 +477,7 @@ def print_kot_order(doc, print_settings):
         # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
         try:
             d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+            items_printed = True
         except Exception as e:
             # If printing fails mid-receipt, log the error but allow the function to finish
             print(f"Error printing item row: {e}")
@@ -518,10 +537,10 @@ def print_kot_order(doc, print_settings):
     d.textln("=" * TOTAL_WIDTH)
     
     # Print message if the KOT was empty (e.g., if neither quantity nor cancelled_qty was > 0 for any item)
-    if not items_printed:
-        d.set(align='center', bold=True)
-        d.textln("NO ITEMS TO PRINT ON THIS KOT")
-        d.set(align='left', bold=False)
+    # if not items_printed:
+    #     d.set(align='center', bold=True)
+    #     d.textln("NO ITEMS TO PRINT ON THIS KOT")
+    #     d.set(align='left', bold=False)
 
     d.ln(1)
     d.set(double_width=True, align='center')
