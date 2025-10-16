@@ -441,6 +441,7 @@ def print_kot_order(doc, print_settings):
         try:
             # Data preparation must be in the same order as the header_list: QTY, ITEM, RATE, AMOUNT
             item_name_str = item.get('item_name', '')[:COLUMN_WIDTHS[0]] 
+            item_name_str = item_name_str + " " + item.get('comment', '')
             qty_str = str(int(item.get('qty', 0)))
             # Truncate item name to fit column width
             rate_str = f"{item.get('rate', 0.0):.2f}"
