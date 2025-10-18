@@ -161,7 +161,8 @@ doc_events = {
 override_whitelisted_methods = {
 	 "ury.ury_pos.api.getRestaurantMenu": "ury_companion_ssw.ury_companion_ssw.overrides.api.get_restaurant_menu_override",
      "ury.ury_pos.api.getDefaultCustomer": "ury_companion_ssw.ury_companion_ssw.overrides.api.get_default_customer_override",
-	 "ury.ury.api.ury_print.network_printing": "ury_companion_ssw.ury_companion_ssw.overrides.api.network_printing_override"
+	 "ury.ury.api.ury_print.network_printing": "ury_companion_ssw.ury_companion_ssw.overrides.api.network_printing_override",
+	 "ury.ury.doctype.ury_order.ury_order.sync_order": "ury_companion_ssw.ury_companion_ssw.overrides.api.sync_order_override"
 }
 #
 # each overriding function accepts a `data` argument;

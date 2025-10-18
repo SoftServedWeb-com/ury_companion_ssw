@@ -4,13 +4,12 @@ import frappe
 from frappe import _
 from ury.ury_pos.api import getBranch
 from datetime import datetime
-import subprocess
-import imgkit # Requires wkhtmltoimage system package
-from frappe.www.printview import  get_rendered_raw_commands
+import json
 import io
 from base64 import b64encode
 from pyqrcode import create as qr_create
 from frappe.utils.data import add_to_date, get_time, getdate
+from ury.ury.doctype.ury_order.ury_order import kot_execute, get_order_invoice
 
 @frappe.whitelist()
 def get_restaurant_menu_override(pos_profile, room=None, order_type=None):
@@ -692,3 +691,200 @@ def print_receipt_with_columns(doc):
     p.cut(mode='PART', feed=False)
     p.close()
     return "Success: Receipt printed via CUPS (BIN method)."
+
+
+@frappe.whitelist()
+def sync_order_override(
+    items,
+    cashier,
+    owner,
+    mode_of_payment,
+    customer,
+    no_of_pax,
+    last_invoice,
+    waiter,
+    pos_profile,
+    last_modified_time=None,
+    table=None,
+    invoice=None,
+    comments=None,
+    order_type=None,
+    aggregator_id=None,
+    room=None,
+):
+    
+    user_role = frappe.get_roles()
+    posprofile = frappe.get_doc("POS Profile", pos_profile)
+    
+    billing_user = any(
+        role.role in user_role for role in posprofile.role_allowed_for_billing
+    )
+
+    # Check if the last invoice was already billed
+    if (
+        last_invoice
+        and frappe.db.get_value("POS Invoice", last_invoice, "invoice_printed") == 1
+        and (not billing_user)
+    ):
+        frappe.msgprint(
+            title="Invoice Already Billed",
+            indicator="red",
+            msg=("This order has already been billed. Please reload the page."),
+        )
+        return {"status": "Failure"}
+
+    invoice = get_order_invoice(table, invoice,order_type)
+
+    if last_invoice and last_modified_time:
+        lastModifiedTime = invoice.modified
+        from datetime import datetime
+
+        if isinstance(last_modified_time, str):
+            try:
+                last_modified_time = datetime.strptime(
+                    last_modified_time, "%Y-%m-%d %H:%M:%S.%f"
+                )
+            except ValueError:
+                last_modified_time = datetime.strptime(
+                    last_modified_time, "%Y-%m-%d %H:%M:%S"
+                )
+        if isinstance(lastModifiedTime, str):
+            try:
+                lastModifiedTime = datetime.strptime(
+                    lastModifiedTime, "%Y-%m-%d %H:%M:%S.%f"
+                )
+            except ValueError:
+                lastModifiedTime = datetime.strptime(
+                    lastModifiedTime, "%Y-%m-%d %H:%M:%S"
+                )
+        if lastModifiedTime != last_modified_time:
+            frappe.msgprint(
+                title="Order has been modified",
+                indicator="red",
+                msg=(
+                    "This order has been modified. Please reload the page to retrieve the latest edits."
+                ),
+            )
+            return {"status": "Failure"}
+    else:
+        if invoice.name and invoice.invoice_printed == 0 and not billing_user:
+            frappe.msgprint(
+                title="Table occupied ",
+                indicator="red",
+                msg=("{0} is already occupied . Please refresh the page.").format(
+                    table
+                ),
+            )
+            return {"status": "Failure"}
+
+    if not customer:
+        frappe.throw("Please enter valid customer details")
+    else:
+        invoice.customer = customer
+
+    if order_type:
+        invoice.order_type = order_type
+
+    customerdoc = frappe.get_doc("Customer", customer)
+    invoice.mobile_number = customerdoc.mobile_number
+    if comments:
+        invoice.custom_comments = comments
+    invoice.no_of_pax = no_of_pax
+    invoice.pos_profile = pos_profile
+    invoice.cashier = cashier
+    invoice.waiter = waiter
+    invoice.custom_aggregator_id = aggregator_id
+    invoice.custom_restaurant_room =room
+    invoice.restaurant_table = table
+    
+    if order_type == "Aggregators":
+        price_list = frappe.db.get_value("Aggregator Settings",{"customer": customer, "parent": invoice.branch, "parenttype": "Branch"},"price_list",)
+        
+        if not price_list:
+            frappe.throw(f"Price list for customer {customer} in branch {invoice.branch} not found in Aggregator Settings.")
+    else:
+        price_list = invoice.selling_price_list
+
+    # dummy payment
+    if invoice.invoice_created == 0:
+        invoice.append(
+            "payments",
+            dict(mode_of_payment=mode_of_payment, amount=invoice.grand_total),
+        )
+        invoice.invoice_created = 1
+
+    past_item = []
+    for item in invoice.items:
+        previous_item = {
+            "item_code": item.item_code,
+            "item_name": item.item_name,
+            "qty": item.qty,
+            "comments": "",
+        }
+        past_item.append(previous_item)
+        
+
+    # Conditional checking for 'items' type:
+    # - 'ury': JSON passed, hence using isinstance
+    # - 'ury_pos': Already formatted list, hence using else
+    if isinstance(items, str):
+        items = json.loads(items)
+    invoice.items = []
+    
+    menu = frappe.db.get_value("URY Menu", {"branch": invoice.branch}, "name")
+   
+    for d in items:
+        
+        course = frappe.db.get_value("URY Menu Item", {"item": d.get("item"),"parent":menu}, "course")
+        
+        item_prices = frappe.db.get_list(
+            "Item Price",
+            filters={"item_code": d.get("item"), "price_list": price_list},
+            fields=["price_list_rate"],
+        )
+        print(f"Item {d.get('item')} Prices: {item_prices}")
+
+        if not item_prices:
+            frappe.throw(_("No item price found for Item: {0} in Price List: {1}. Please check the price list settings.").format(item.item_code, price_list))
+
+        else:
+            invoice.append(
+                "items",
+                dict(
+                    item_code=d.get("item"),
+                    item_name=d.get("item_name"),
+                    qty=d.get("qty"),
+                    **({"custom_course": course} if course else {}),
+                    comment=d.get("comment"),
+                    rate = d.get("rate") if d.get("rate") else item_prices[0].price_list_rate,
+                    price_list_rate = item_prices[0].price_list_rate,
+                    base_price_list_rate = item_prices[0].price_list_rate,
+                    cost_center = frappe.db.get_value(
+                        "POS Profile", pos_profile, "cost_center"
+                        ),
+                ),
+            )
+
+    try:
+        invoice.save()
+    except Exception as e:
+        frappe.throw(f"Error while updating order: {e}")   
+
+
+    try:
+        kot_execute(invoice.name, customer, table, items, past_item, comments)
+
+    except Exception as e:
+        # If an exception occurs (e.g., "kot" app not found), it will be caught here without affect the code execution.
+        error_msg = f"KOT Creation Failes {str(e)}"            
+        frappe.log_error(error_msg, "KOT Error")
+
+    # table status
+    if invoice.invoice_printed == 0:
+        frappe.db.set_value(
+            "URY Table", table, {"occupied": 1, "latest_invoice_time": invoice.creation}
+        )
+
+    invoice.db_set("owner", owner)
+    return invoice.as_dict()
+
