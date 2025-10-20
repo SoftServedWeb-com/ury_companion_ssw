@@ -476,6 +476,7 @@ def print_kot_order(doc, print_settings):
         # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
         try:
             d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
+            d.software_columns([" ", " ", " "], COLUMN_WIDTHS, COLUMN_ALIGNMENT) # Print 3 spaces to separate items
             items_printed = True
         except Exception as e:
             # If printing fails mid-receipt, log the error but allow the function to finish
