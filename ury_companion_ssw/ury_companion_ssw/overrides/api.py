@@ -401,7 +401,6 @@ def print_kot_order(doc, print_settings):
     d.set(double_height=False, bold=False)
     
     # Print the KOT ID, Date, and Time
-    d.textln(f"KOT ID: {doc.name}")
     d.textln(f"DATE: {doc.get_formatted('date')} TIME: {doc.get_formatted('time')}")
 
     # Order Details
@@ -476,8 +475,7 @@ def print_kot_order(doc, print_settings):
         # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
         try:
             d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
-            d.software_columns([" ", " ", " "], COLUMN_WIDTHS, COLUMN_ALIGNMENT) # Print 3 spaces to separate items
-            items_printed = True
+            d.textln("-" * TOTAL_WIDTH)
         except Exception as e:
             # If printing fails mid-receipt, log the error but allow the function to finish
             print(f"Error printing item row: {e}")
@@ -543,9 +541,10 @@ def print_kot_order(doc, print_settings):
     #     d.set(align='left', bold=False)
 
     d.ln(1)
-    d.set(double_width=True, align='center')
+    d.set(double_width=True, align='center', bold=True)
     d.textln(f"ORDER NO: {doc.order_no}")
-    d.set(double_width=False, align='left')
+    d.textln(f"KOT ID: {doc.name}")
+    d.set(double_width=False, align='left', bold=False)
     # ======================== FOOTER & PRINTING ========================
     d.cut(mode='PART', feed=False)
     # Actual printing logic
