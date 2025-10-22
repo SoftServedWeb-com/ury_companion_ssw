@@ -270,7 +270,7 @@ def print_pos_invoice(doc, print_settings):
     d.set(align='left')
 
 # --- New Transaction Details Section ---
-    d.textln(f"Invoice No.: {doc.name}")
+    d.textln(f"Order No.: {doc.custom_ury_order_number}")
     if doc.order_type:
         d.set(double_height=True,bold=True)
         d.textln(f"Order Type : {doc.order_type}")
@@ -544,8 +544,7 @@ def print_kot_order(doc, print_settings):
     d.ln(1)
     d.set( align='center', bold=True)
     d.textln(f"ORDER NO: {doc.order_no}")
-    d.textln(f"KOT ID: {doc.name}")
-    d.set( align='left', bold=False)
+    d.set(double_width=False, align='left', bold=False)
     # ======================== FOOTER & PRINTING ========================
     d.cut(mode='PART', feed=False)
     # Actual printing logic
