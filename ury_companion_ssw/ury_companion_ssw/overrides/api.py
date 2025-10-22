@@ -272,7 +272,9 @@ def print_pos_invoice(doc, print_settings):
 # --- New Transaction Details Section ---
     d.textln(f"Invoice No.: {doc.name}")
     if doc.order_type:
+        d.set(double_height=True,bold=True)
         d.textln(f"Order Type : {doc.order_type}")
+        d.set(double_height=False,bold=False)
     if doc.no_of_pax:
         d.textln(f"Table/Pax : {doc.no_of_pax}") # Added table/pax info
     d.textln(f"Date/Time : {doc.get_formatted('posting_date')} {doc.get_formatted('posting_time')[:8]}")
@@ -299,7 +301,7 @@ def print_pos_invoice(doc, print_settings):
         return "Error: Failed to print header"
 
     d.textln("-" * sum(COLUMN_WIDTHS)) # Print separator line
-    
+    d.set(bold=True)
     # --- 2. Print Each Item Row in a Loop ---
     for item in doc.items:
         # 1. Extract and format the data for the columns
@@ -329,7 +331,7 @@ def print_pos_invoice(doc, print_settings):
         except Exception as e:
             # If printing fails mid-receipt, log the error but allow the function to finish
             print(f"Error printing item row: {e}")
-
+    d.set(bold=False)
     d.textln("-" * sum(COLUMN_WIDTHS)) # Print final separator line
     
     # The rest of the invoice content goes here...
