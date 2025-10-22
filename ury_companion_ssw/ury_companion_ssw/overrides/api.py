@@ -261,9 +261,8 @@ def print_pos_invoice(doc, print_settings):
         abs_path = os.path.abspath(os.path.join(frappe.get_site_path('public'), company.company_logo.lstrip('/')))
         d.image(abs_path, center=True)
     d.ln(1)
-    d.set(bold=True,align='center',double_height=True, )
+    d.set(bold=True,align='center', )
     d.textln(company.name.upper())
-    d.set(double_height=False)
     d.textln(f"VAT/Tax No: {tax_id}")
     d.set(bold=False)
     if(doc.custom_zatca_code):
@@ -396,9 +395,9 @@ def print_kot_order(doc, print_settings):
     d = Dummy()
     d.profile.profile_data["media"]["width"]["pixels"] = 576
     # ======================== HEADER SECTION ========================
-    d.set(bold=True, align='center', double_height=True)
+    d.set(bold=True, align='center')
     d.textln("--- KITCHEN ORDER TICKET ---")
-    d.set(double_height=False, bold=False)
+    d.set( bold=False)
     
     # Print the KOT ID, Date, and Time
     d.textln(f"DATE: {doc.get_formatted('date')} TIME: {doc.get_formatted('time')}")
@@ -541,10 +540,10 @@ def print_kot_order(doc, print_settings):
     #     d.set(align='left', bold=False)
 
     d.ln(1)
-    d.set(double_width=True, align='center', bold=True)
+    d.set( align='center', bold=True)
     d.textln(f"ORDER NO: {doc.order_no}")
     d.textln(f"KOT ID: {doc.name}")
-    d.set(double_width=False, align='left', bold=False)
+    d.set( align='left', bold=False)
     # ======================== FOOTER & PRINTING ========================
     d.cut(mode='PART', feed=False)
     # Actual printing logic
