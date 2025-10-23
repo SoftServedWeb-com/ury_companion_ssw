@@ -270,11 +270,12 @@ def print_pos_invoice(doc, print_settings):
     d.set(align='left')
 
 # --- New Transaction Details Section ---
-    d.textln(f"Order No.: {doc.custom_ury_order_number}")
     if doc.order_type:
         d.set(double_height=True,bold=True)
         d.textln(f"Order Type : {doc.order_type}")
         d.set(double_height=False,bold=False)
+    pos_number = int(doc.name.split("_")[1])
+    d.textln(f"Order No.: {pos_number}")
     if doc.no_of_pax:
         d.textln(f"Table/Pax : {doc.no_of_pax}") # Added table/pax info
     d.textln(f"Date/Time : {doc.get_formatted('posting_date')} {doc.get_formatted('posting_time')[:8]}")
@@ -543,7 +544,8 @@ def print_kot_order(doc, print_settings):
 
     d.ln(1)
     d.set( align='center', bold=True)
-    d.textln(f"ORDER NO: {doc.order_no}")
+    pos_number = int(doc.invoice.split("_")[1])
+    d.textln(f"ORDER NO: {pos_number}")
     d.set(double_width=False, align='left', bold=False)
     # ======================== FOOTER & PRINTING ========================
     d.cut(mode='PART', feed=False)
