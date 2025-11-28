@@ -10,6 +10,7 @@ from base64 import b64encode
 from pyqrcode import create as qr_create
 from frappe.utils.data import add_to_date, get_time, getdate
 from ury.ury.doctype.ury_order.ury_order import kot_execute, get_order_invoice
+import re
 
 @frappe.whitelist()
 def get_restaurant_menu_override(pos_profile, room=None, order_type=None):
@@ -274,7 +275,7 @@ def print_pos_invoice(doc, print_settings):
         d.set(double_height=True,bold=True)
         d.textln(f"Order Type : {doc.order_type}")
         d.set(double_height=False,bold=False)
-    pos_number = int(doc.name.split("_")[1])
+    pos_number = normalise_number_in_string(doc.name)
     d.textln(f"Order No.: {pos_number}")
     if doc.no_of_pax:
         d.textln(f"Table/Pax : {doc.no_of_pax}") # Added table/pax info
@@ -473,7 +474,7 @@ def print_kot_order(doc, print_settings):
             qty_str,
             rate_str,
         ]
-        
+        d.set(bold=True)  
         # 3. CRITICAL FIX 2: Call software_columns for EACH ROW (text_list)
         try:
             d.software_columns(text_list, COLUMN_WIDTHS, COLUMN_ALIGNMENT)
@@ -481,6 +482,7 @@ def print_kot_order(doc, print_settings):
         except Exception as e:
             # If printing fails mid-receipt, log the error but allow the function to finish
             print(f"Error printing item row: {e}")
+        d.set(bold=False)
     # Print Each Item Row
     # for item in doc.kot_items:
     #     item = item.as_dict()
@@ -544,7 +546,7 @@ def print_kot_order(doc, print_settings):
 
     d.ln(1)
     d.set( align='center', bold=True)
-    pos_number = int(doc.invoice.split("_")[1])
+    pos_number = normalise_number_in_string(doc.invoice)
     d.textln(f"ORDER NO: {pos_number}")
     d.set(double_width=False, align='left', bold=False)
     # ======================== FOOTER & PRINTING ========================
@@ -889,4 +891,7 @@ def sync_order_override(
 
     invoice.db_set("owner", owner)
     return invoice.as_dict()
+
+def normalise_number_in_string(text):
+    return re.sub(r'([A-Z]+)0+([1-9]\d*)',r'\1  \2',text)
 
